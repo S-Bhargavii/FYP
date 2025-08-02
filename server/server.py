@@ -6,6 +6,7 @@ import paho.mqtt.client as mqtt
 import json 
 from typing import List, Dict
 import asyncio
+import time
 
 # constants
 BROKER = "broker.hivemq.com"
@@ -44,7 +45,7 @@ class ConnectionManager:
                 self.disconnect(jetson_id)
 
 # connection mananger 
-manager = ConnectionManager()
+websocket_connection_manager = ConnectionManager()
 
 class SessionRegistration(BaseModel):
     jetson_id : str
@@ -110,22 +111,31 @@ async def websocket_endpoint(websocket:WebSocket, session_token:str):
     if not jetson_id:
         raise HTTPException(status_code=404, detail="Jetson ID not found in session.")
     
-    await manager.connect(websocket, jetson_id)
+    await websocket_connection_manager.connect(websocket, jetson_id)
 
     try:
         while True:
             await websocket.receive_text() # to keep connection alive 
     except WebSocketDisconnect:
-        manager.disconnect(jetson_id)
+        websocket_connection_manager.disconnect(jetson_id)
 
 def on_pose_message(client, userdata, msg):
     try:
         topic_parts = msg.topic.split("/")
         jetson_id = topic_parts[-1]
-        payload = msg.payload.decode()
+        payload_str = msg.payload.decode()
+        payload = json.loads(payload_str)
+
+        redis_key = f"user_location:{jetson_id}"
+        redis_value = {
+            "x": payload["x"],
+            "y": payload["y"], 
+            "timestamp": time.time()
+        }
+        redis_client.setex(redis_key, 300, json.dumps(redis_value))
 
         asyncio.run_coroutine_threadsafe(
-            manager.send_to_jetson_user(jetson_id, payload), asyncio.get_event_loop()
+            websocket_connection_manager.send_to_jetson_user(jetson_id, payload_str), asyncio.get_event_loop()
         )
     except Exception as e:
         print(f"Error processing pose message: {e}")
