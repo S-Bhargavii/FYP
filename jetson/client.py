@@ -47,6 +47,10 @@ def on_message(client, userdata, msg):
             # Start ROS Subscriber in a separate thread
             ros_thread = threading.Thread(target=ros_listener)
             ros_thread.start()
+        elif payload["action"] == "shutdown":
+            print("Received shutdown command")
+            shutdown()
+            # don't shutdown the MQTT client here, to listen to further commands
     except Exception as e:
         print(f"Error processing message: {e}")
 
