@@ -1,5 +1,12 @@
 #!/usr/bin/env python3 
-
+"""
+    This file contains the code to do the following -
+    1.  Launches the camera node and the SLAM ros node. 
+    2.  Subscribes to the ROS node that publishes the real time 
+        location info from the SLAM running in the Jetson.
+    3.  Forwards the co-ordinate info to the central server via a 
+        websocket connection.
+"""
 import rospy 
 import subprocess
 import signal

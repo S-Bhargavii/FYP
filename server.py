@@ -1,3 +1,9 @@
+"""
+    Contains the server code that recieves the location
+    of the user and also computes the routing using A* 
+    and accounts for rerouting as well.
+"""
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 app = FastAPI()
