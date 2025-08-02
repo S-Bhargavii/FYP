@@ -1,2 +1,0 @@
-# FYP
-## Visual Localisation System
