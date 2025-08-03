@@ -34,24 +34,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="live"
         options={{
           title: 'Live Location',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="location.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="navigation"
         options={{
           title: 'Navigation',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="navigation.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="crowd"
         options={{
           title: 'Crowd Check',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="crowd.fill" color={color} />,
         }}
       />
     </Tabs>
