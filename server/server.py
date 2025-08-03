@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import redis
 import uuid
@@ -69,13 +70,14 @@ def on_pose_msg(client, userdata, msg):
         print(f"Error processing pose message : {e}")
 
 # listen to any requests that start with POSE_TOPIC_PREFIX and add callback 
-mqtt_client.message_callback_add(MQTT_POSE_TOPIC_PREFIX+"#", on_pose_msg) # "#" is a wildcard
-mqtt_client.subscribe(MQTT_POSE_TOPIC_PREFIX+"#")
+mqtt_client.message_callback_add(f"{MQTT_POSE_TOPIC_PREFIX}/"+"#", on_pose_msg) # "#" is a wildcard
+mqtt_client.subscribe(f"{MQTT_POSE_TOPIC_PREFIX}/"+"#")
 
 ############ API ENDPOINTS #################
 
 @app.post("/register")
 def register(session: SessionRegistration):
+    print(f"Registration required for : {session.jetson_id} and {session.map_id}")
     if not session.jetson_id or not session.map_id:
         raise HTTPException(status_code=400, detail="jetson_id and map_id are required.")
     
@@ -95,11 +97,14 @@ def register(session: SessionRegistration):
         map_to_path_planner[session.map_id] = PathPlanner(redis_client, session.map_id)
 
     # publish on corresponding jetson's topic 
-    mqtt_client.publish(topic=topic, payload=payload)
+    mqtt_client.publish(topic=topic, payload=json.dumps(payload))
+
+    return JSONResponse(content={"message": "Registration successful."}, status_code=200)
     #TODO: is it possible to wait for ack from jetson and then send 200 ?
 
 @app.get("/terminate")
-def terminate(jetson_id:int):
+def terminate(jetson_id:str):
+    print(f"Termination requested for {jetson_id}")
     if jetson_id not in jetson_to_map:
         raise HTTPException(status_code=400, detail="jetson has not been registered.")
     
@@ -109,13 +114,15 @@ def terminate(jetson_id:int):
     }
 
     # publish on corresponding jetson's topic 
-    mqtt_client.publish(topic=topic, payload=payload)
+    mqtt_client.publish(topic=topic, payload=json.dumps(payload))
     
     # delete mapping 
     del jetson_to_map[jetson_id]
 
+    return JSONResponse(content={"message": "Termination successful."}, status_code=200)
+
 @app.websocket("/ws/{jetson_id}")
-async def websocket_endpoint(websocket : WebSocket, jetson_id: int):
+async def websocket_endpoint(websocket : WebSocket, jetson_id: str):
     await websocket_connection_manager.connect(websocket, jetson_id)
 
     try:
@@ -125,7 +132,7 @@ async def websocket_endpoint(websocket : WebSocket, jetson_id: int):
         websocket_connection_manager.disconnect(jetson_id)
 
 @app.get("/route/fast/{destination}/{jetson_id}")
-def get_fast_route(destination: str, jetson_id: int):
+def get_fast_route(destination: str, jetson_id: str):
     path_planner :PathPlanner = map_to_path_planner[jetson_to_map[jetson_id]]
 
     start = path_planner.fetch_jetson_current_location(jetson_id)
@@ -134,7 +141,7 @@ def get_fast_route(destination: str, jetson_id: int):
     return {"path":path}
 
 @app.get("/route/less-crowd/{destination}/{jetson_id}")
-def get_less_crowded_route(destination:str, jetson_id:int):
+def get_less_crowded_route(destination:str, jetson_id:str):
     path_planner :PathPlanner = map_to_path_planner[jetson_to_map[jetson_id]]
 
     start = path_planner.fetch_jetson_current_location(jetson_id)
@@ -143,6 +150,6 @@ def get_less_crowded_route(destination:str, jetson_id:int):
     return {"path":path}
 
 @app.get("/crowd-heatmap/{jetson_id}")
-def get_crowd_density(jetson_id:int):
+def get_crowd_density(jetson_id:str):
     path_planner : PathPlanner = map_to_path_planner[jetson_to_map[jetson_id]]
     return path_planner.compute_crowd_density(jetson_id, jetson_to_map)
