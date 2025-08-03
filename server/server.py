@@ -118,6 +118,8 @@ def terminate(jetson_id:str):
     
     # delete mapping 
     del jetson_to_map[jetson_id]
+    # delete websocket connection
+    websocket_connection_manager.disconnect(jetson_id)
 
     return JSONResponse(content={"message": "Termination successful."}, status_code=200)
 
