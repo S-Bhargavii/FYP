@@ -303,3 +303,12 @@ def get_less_crowded_route(destination:str, session_token:str):
     path = find_nearest_path(start, goal_cells, density_grid=density_grid, preference='least_crowded')
     return {"path": path}
 
+@app.get("/crowd-heatmap/{session_token}")
+def get_crowd_density(session_token :str):
+    redis_key = f"sesion:{session_token}"
+    session_data = redis_client.hgetall(redis_key)
+
+    if not session_data:
+        raise HTTPException(status_code=404, detail="Session not found")
+    map_id = session_data.get("map_id")
+    return compute_crowd_density(map_id)
