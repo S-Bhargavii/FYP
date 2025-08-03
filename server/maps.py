@@ -15,13 +15,16 @@ LANDMARK_MAPPING = {
     9: "The Price Of Victory"
 }
 
-def parse_tileset(xml_file: str, tilewidth: int, tileheight: int):
+def parse_tileset(xml_file: str):
     tree  = ET.parse(xml_file)
     root = tree.getroot()
 
     landmark_cells = defaultdict(list) # landmark_id --> array of (x,y) on the grid where the landmark is placed 
     obstructions = set()
     columns = int(root.attrib["columns"])
+    rows = int(root.attrib["tilecount"]) // columns
+
+    tile_width, tile_height = int(root.attrib["tilewidth"]), int(root.attrib["tileheight"])
 
     for tile in root.findall("tile"):
         tile_id = int(tile.attrib['id'])
@@ -35,4 +38,4 @@ def parse_tileset(xml_file: str, tilewidth: int, tileheight: int):
         if tile_type >= 2:
             landmark_cells[tile_type].append((x,y))
     
-    return landmark_cells, obstructions
+    return landmark_cells, obstructions, (tile_width, tile_height), (rows, columns)
