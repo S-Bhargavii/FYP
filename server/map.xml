@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.11.2" name="simpler_map_for_my_sanity_2" tilewidth="8" tileheight="8" tilecount="2072" columns="37">
- <image source="FYP/server/simpler_map_for_my_sanity.png" width="296" height="452"/>
+<tileset version="1.10" tiledversion="1.11.2" name="map" tilewidth="8" tileheight="8" tilecount="2072" columns="37">
+ <image source="FYP/server/map.png" width="296" height="452"/>
  <tile id="0" type="1"/>
  <tile id="1" type="2"/>
  <tile id="2" type="2"/>
