@@ -12,12 +12,12 @@ REDIS_LOCATION_PREFIX = "user_location"
 
 # contains the mapping from the map_id to the corresponding xml file
 MAP_PATH_DICTIONARY = {
-    "1" : "map_1.xml"
+    "map_01" : "map_01.xml"
 }
 
 # contains the mapping from the map_id to the landmarks and ids
 MAP_LANDMARKS_DICTIONARY = {
-    "1": {
+    "map_01": {
         "Join or Die : An Americal Army Takes Shape Boston, 1775": 2,
         "King George's Statue": 3,
         "Chain Of States": 4,

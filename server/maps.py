@@ -13,7 +13,7 @@ def parse_tileset(xml_file: str):
     obstructions = set()
     columns = int(root.attrib["columns"])
     rows = int(root.attrib["tilecount"]) // columns
-    grid = {}
+    grid = grid = [[None for _ in range(columns)] for _ in range(rows)] 
 
     tile_width, tile_height = int(root.attrib["tilewidth"]), int(root.attrib["tileheight"])
 
@@ -29,6 +29,6 @@ def parse_tileset(xml_file: str):
         if tile_type >= 2:
             landmark_cells[tile_type].append((x,y))
 
-        grid[x][y] = tile_type
+        grid[y][x] = tile_type
     
     return landmark_cells, obstructions, grid, (tile_width, tile_height), (columns, rows)
