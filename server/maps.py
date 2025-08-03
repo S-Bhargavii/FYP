@@ -4,16 +4,6 @@ from collections import defaultdict
 # 0 --> free
 # 1 --> obstacle 
 # 2,3,4,5.... --> landmark --> also should be treated as obstacles 
-LANDMARK_MAPPING = {
-    2: "Join or Die : An Americal Army Takes Shape Boston, 1775",
-    3: "King George's Statue",
-    4 : "Chain Of States",
-    5: "Independence Theatre",
-    6 : "The War Begins, 1775",
-    7: "Boston's Liberty Tree",
-    8: "Prologue: Tearing Down The King",
-    9: "The Price Of Victory"
-}
 
 def parse_tileset(xml_file: str):
     tree  = ET.parse(xml_file)
@@ -23,6 +13,7 @@ def parse_tileset(xml_file: str):
     obstructions = set()
     columns = int(root.attrib["columns"])
     rows = int(root.attrib["tilecount"]) // columns
+    grid = {}
 
     tile_width, tile_height = int(root.attrib["tilewidth"]), int(root.attrib["tileheight"])
 
@@ -37,5 +28,7 @@ def parse_tileset(xml_file: str):
             obstructions.add((x,y))
         if tile_type >= 2:
             landmark_cells[tile_type].append((x,y))
+
+        grid[x][y] = tile_type
     
-    return landmark_cells, obstructions, (tile_width, tile_height), (rows, columns)
+    return landmark_cells, obstructions, grid, (tile_width, tile_height), (columns, rows)
