@@ -1,12 +1,43 @@
 import { useAtom } from 'jotai';
 import { jetsonIdAtom, mapIdAtom } from '../state/globalState';
-import { View, Text, Image, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import { useEffect, useState } from 'react';
+import axios from "axios";
 
 export default function RegistrationScreen() {
   const [jetsonId, setJetsonId] = useAtom(jetsonIdAtom);
   const [mapId, setMapId] = useAtom(mapIdAtom);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = () => {
+    setLoading(true);
+    axios.post("http://10.0.2.2:8000/register", {
+        jetson_id: jetsonId,
+        map_id: mapId
+      })
+      .then(()=> setIsRegistered(true))
+      .catch(err => console.error(err))
+      .finally(()=> setLoading(false));
+  }
+
+  const handleTerminate = () => {
+    setLoading(true);
+    axios.get("http://10.0.2.2:8000/terminate", {
+      params: {
+        jetson_id: jetsonId
+      }
+    })
+    .then(() => {
+      setJetsonId('');
+      setMapId('');
+      setIsRegistered(false);
+    })
+    .catch(err => console.error(err))
+    .finally(() => setLoading(false));
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black">
@@ -32,6 +63,7 @@ export default function RegistrationScreen() {
             <Picker
               selectedValue={jetsonId}
               onValueChange={(itemValue) => setJetsonId(itemValue)}
+              enabled={!isRegistered}
               dropdownIconColor="#98733c"
             >
               <Picker.Item label="Select Jetson ID" value="" />
@@ -45,6 +77,7 @@ export default function RegistrationScreen() {
             <Picker
               selectedValue={mapId}
               onValueChange={(itemValue) => setMapId(itemValue)}
+              enabled={!isRegistered}
               dropdownIconColor="#98733c"
             >
               <Picker.Item label="Select Map ID" value="" />
@@ -54,16 +87,36 @@ export default function RegistrationScreen() {
             </Picker>
           </View>
         </View>
+
+        {loading && (
+          <View className="mt-6 items-center">
+            <ActivityIndicator size="large" color="#98733c" />
+          </View>
+        )}
+        
       </ScrollView>
 
+
       {/* Fixed Termination Button with Animation */}
-      {jetsonId && mapId ? (
-        <Animated.View entering={FadeInUp} className="absolute bottom-4 w-full px-6">
-          <TouchableOpacity className="bg-red-600 rounded-full py-3 items-center">
-            <Text className="text-white font-semibold">Terminate Session</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      ) : null}
+      <View className="absolute bottom-4 w-full px-6 space-y-4">
+        <TouchableOpacity
+          onPress={handleRegister}
+          className={`rounded-full py-3 items-center ${isRegistered ? 'bg-gray-400' : 'bg-green-600'}`}
+          disabled={isRegistered}
+        >
+          <Text className="text-white font-semibold">Register Session</Text>
+        </TouchableOpacity>
+        
+        <View className="h-2" />
+
+        <TouchableOpacity
+          onPress={handleTerminate}
+          className={`rounded-full py-3 items-center ${!isRegistered ? 'bg-gray-400' : 'bg-red-600'}`}
+          disabled={!isRegistered}
+        >
+          <Text className="text-white font-semibold">Terminate Session</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
