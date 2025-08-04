@@ -11,9 +11,9 @@ from geometry_msgs.msg import Point
 BROKER = "broker.hivemq.com"
 PORT = 1883
 # topic where commands get published by the server --> the jetson subscribes to this topic
-COMMANDS_TOPIC = "/jetson/commands/jetson_001" 
+COMMANDS_TOPIC = "/commands/jetson_001" 
 # topic where the user pose is published by the jetson 
-POSE_TOPIC = "/jetson/pose/jetson_001"
+POSE_TOPIC = "/pose/jetson_001"
 ROS_TOPIC = "camera_real_world_position"
 
 # process handles
