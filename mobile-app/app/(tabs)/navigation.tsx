@@ -1,11 +1,12 @@
-import { View, Text } from 'react-native'
+import { View, Text, SafeAreaView } from 'react-native'
 import React from 'react'
+import Header from '@/components/Header'
 
 const navigation = () => {
   return (
-    <View>
-      <Text>navigation</Text>
-    </View>
+        <SafeAreaView className="flex-1 bg-white dark:bg-black">
+          <Header headerName='Navigation'/>
+        </SafeAreaView>
   )
 }
 
