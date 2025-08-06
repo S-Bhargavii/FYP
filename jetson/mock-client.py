@@ -19,8 +19,8 @@ def pose_publisher():
         client.publish(POSE_TOPIC, json.dumps(pose))
         print(f"Published: {pose}")
         x = (x + 1) % 296
-        # Wait for 3 seconds or until stop_event is set
-        if stop_event.wait(1):
+        # Wait for 0.5 seconds or until stop_event is set
+        if stop_event.wait(0.5):
             break
 
 def on_connect(client, userdata, flags, rc):

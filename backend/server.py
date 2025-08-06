@@ -61,7 +61,7 @@ def on_pose_msg(client, userdata, msg):
             "y": payload["y"], 
             "timestamp": time.time()
         }
-        redis_client.setex(redis_key, 300, json.dumps(redis_value))
+        redis_client.set(redis_key, json.dumps(redis_value))
 
         # send the user's current position to the corresponding 
         # websocket connection
@@ -98,7 +98,7 @@ def register(session: SessionRegistration):
     jetson_to_map[session.jetson_id] = session.map_id
     
     if session.map_id not in map_to_path_planner:
-        map_to_path_planner[session.map_id] = PathPlanner(redis_client, session.map_id)
+        map_to_path_planner[session.map_id] = PathPlanner(redis_client, session.map_id, jetson_to_map)
 
     # publish on corresponding jetson's topic 
     mqtt_client.publish(topic=topic, payload=json.dumps(payload))
@@ -143,7 +143,7 @@ def get_fast_route(destination: str, jetson_id: str):
 
     start = path_planner.fetch_jetson_current_location(jetson_id)
     path = path_planner.find_nearest_path(start, destination, "fastest")
-
+    print(f"Fastest path is  : {path}")
     return {"path":path}
 
 @app.get("/route/less-crowd/{destination}/{jetson_id}")

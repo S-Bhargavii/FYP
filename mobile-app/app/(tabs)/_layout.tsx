@@ -34,7 +34,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="live"
+        name="livePos"
         options={{
           title: 'Live Location',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="location.fill" color={color} />,
