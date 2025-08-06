@@ -1,5 +1,5 @@
 import { useAtom } from 'jotai';
-import { jetsonIdAtom, mapIdAtom } from '../state/globalState';
+import { jetsonIdAtom, mapIdAtom, poseAtom, wsConnectionAtom } from '../state/globalState';
 import { View, Text, Image, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -11,6 +11,8 @@ export default function RegistrationScreen() {
   const [mapId, setMapId] = useAtom(mapIdAtom);
   const [isRegistered, setIsRegistered] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [, setPose] = useAtom(poseAtom);
+  const [wsConnection, setWsConnection] = useAtom(wsConnectionAtom);
 
   const handleRegister = () => {
     setLoading(true);
@@ -21,6 +23,26 @@ export default function RegistrationScreen() {
       .then(()=> setIsRegistered(true))
       .catch(err => console.error(err))
       .finally(()=> setLoading(false));
+      
+      // open websocket connection
+      try{
+        // create a websocket object
+        const ws = new WebSocket(`ws://10.0.2.2:8000/ws/${jetsonId}`)
+        
+        // configure the websocket
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data)
+          console.log("calling from websocket onmessage", data);
+          setPose({x: data.x, y: data.y})
+        }
+        ws.onopen = () => console.log("Websocket connected")
+        ws.onclose = () => console.log("Websocket closed")
+        ws.onerror = (err) => console.log("Websocket Error", err)
+
+        setWsConnection(ws);
+      } catch(error){
+        console.error("Registration failed : ", error);
+      }
   }
 
   const handleTerminate = () => {
@@ -37,6 +59,18 @@ export default function RegistrationScreen() {
     })
     .catch(err => console.error(err))
     .finally(() => setLoading(false));
+
+    try{
+      if(wsConnection){
+        wsConnection.close(); // close the websocket connection when user terminates the session
+        setWsConnection(null);
+      }
+      
+      setPose({x:0, y:0}) // reset the pose
+
+    }catch(error){
+      console.error("Termination failed: ", error);
+    }
   };
 
   return (
@@ -72,6 +106,7 @@ export default function RegistrationScreen() {
               <Picker.Item label="jetson_03" value="jetson_03" />
             </Picker>
           </View>
+          <View className="h-2" />
 
           <View className="border rounded-xl border-gray-400 bg-white/10 dark:bg-black/20">
             <Picker
