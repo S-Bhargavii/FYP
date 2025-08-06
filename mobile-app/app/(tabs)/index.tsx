@@ -32,7 +32,6 @@ export default function RegistrationScreen() {
         // configure the websocket
         ws.onmessage = (event) => {
           const data = JSON.parse(event.data)
-          console.log("calling from websocket onmessage", data);
           setPose({x: data.x, y: data.y})
         }
         ws.onopen = () => console.log("Websocket connected")
