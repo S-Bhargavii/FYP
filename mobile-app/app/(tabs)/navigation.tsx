@@ -178,7 +178,7 @@ const Navigation = () => {
               <Picker.Item label="Less Crowded" value="less-crowd" />
             </Picker>
 
-            <TouchableOpacity className="mt-4 bg-blue-600 py-3 rounded-lg" onPress={fetchPath}>
+            <TouchableOpacity className="mt-4 bg-green-600 py-3 rounded-lg" onPress={fetchPath}>
               <Text className="text-white text-center font-semibold">Start Navigation</Text>
             </TouchableOpacity>
           </>
