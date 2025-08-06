@@ -15,6 +15,9 @@ from connection_manager import ConnectionManager
 from input_validation import SessionRegistration
 from path_planning import PathPlanner
 
+# Store main event loop globally
+main_event_loop = asyncio.get_event_loop()
+
 # app 
 app = FastAPI()
 
@@ -63,7 +66,8 @@ def on_pose_msg(client, userdata, msg):
         # send the user's current position to the corresponding 
         # websocket connection
         asyncio.run_coroutine_threadsafe(
-            websocket_connection_manager.send_to_jetson_user(jetson_id, payload_str), asyncio.get_event_loop()
+            websocket_connection_manager.send_to_jetson_user(jetson_id, payload_str),
+            main_event_loop
         )
 
     except Exception as e:
