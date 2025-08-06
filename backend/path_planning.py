@@ -44,7 +44,7 @@ class PathPlanner:
 
         return (grid_x, grid_y)
 
-    def compute_crowd_density(self):
+    def compute_crowd_density(self, for_heatmap = False):
         keys = self.redis_client.keys(f"{REDIS_LOCATION_PREFIX}:*")
         grid_density = {}
 
@@ -71,7 +71,11 @@ class PathPlanner:
 
         for (grid_x, grid_y), count in grid_density.items():
             density_score = count / max_density
-            density_grid[(grid_x, grid_y)] = density_score
+            if for_heatmap:
+                key_str = f"({grid_x}, {grid_y})"
+                density_grid[key_str] = density_score
+            else:
+                density_grid[(grid_x, grid_y)] = density_score
 
         return density_grid
 
@@ -81,7 +85,7 @@ class PathPlanner:
         goal_nodes = self.landmark_cells.get(MAP_LANDMARKS_DICTIONARY[self.map_id][destination_landmark], [])
 
         if preference == "least_crowded":
-            density_grid = self.compute_crowd_density()
+            density_grid = self.compute_crowd_density(for_heatmap=False)
         else:
             density_grid = {}
 

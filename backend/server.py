@@ -158,4 +158,6 @@ def get_less_crowded_route(destination:str, jetson_id:str):
 @app.get("/crowd-heatmap/{jetson_id}")
 def get_crowd_density(jetson_id:str):
     path_planner : PathPlanner = map_to_path_planner[jetson_to_map[jetson_id]]
-    return path_planner.compute_crowd_density(jetson_id, jetson_to_map)
+    density_grid = path_planner.compute_crowd_density(for_heatmap=True)
+
+    return {"density_grid":density_grid}
