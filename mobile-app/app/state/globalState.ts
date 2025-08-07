@@ -7,6 +7,9 @@ export const jetsonIdAtom = atom<string>('');
 // store the map id 
 export const mapIdAtom = atom<string>('');
 
+// store the map info and metadata 
+export const mapDataAtom = atom(null);
+
 // Pose Data Atom (Global Live Position)
 export const poseAtom = atom({ x: 0, y: 0 });
 
