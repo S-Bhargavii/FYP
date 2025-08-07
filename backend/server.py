@@ -38,7 +38,7 @@ websocket_connection_manager = ConnectionManager()
 jetson_to_map = {}
 
 # each map will have its corresponding path planner object 
-# has the map info and computes the optimal path so on
+# has the map info and computes the optimal path, gets crowd info so on
 map_to_path_planner = {}
 
 def on_pose_msg(client, userdata, msg):
@@ -65,6 +65,9 @@ def on_pose_msg(client, userdata, msg):
 
         # send the user's current position to the corresponding 
         # websocket connection
+        # this is moved to a thread because you don't want the program to be paused 
+        # meaning you don't want to stop listening to incoming messages while this 
+        # part of the code is running.
         asyncio.run_coroutine_threadsafe(
             websocket_connection_manager.send_to_jetson_user(jetson_id, payload_str),
             main_event_loop
@@ -104,7 +107,6 @@ def register(session: SessionRegistration):
     mqtt_client.publish(topic=topic, payload=json.dumps(payload))
 
     return JSONResponse(content={"message": "Registration successful."}, status_code=200)
-    #TODO: is it possible to wait for ack from jetson and then send 200 ?
 
 @app.get("/terminate")
 def terminate(jetson_id:str):
@@ -113,15 +115,14 @@ def terminate(jetson_id:str):
         raise HTTPException(status_code=400, detail="jetson has not been registered.")
     
     topic = f"{MQTT_COMMANDS_TOPIC_PREFIX}/{jetson_id}"
-    payload = {
-        "action" : "shutdown"
-    }
+    payload = {"action" : "shutdown"}
 
     # publish on corresponding jetson's topic 
     mqtt_client.publish(topic=topic, payload=json.dumps(payload))
     
     # delete mapping 
     del jetson_to_map[jetson_id]
+
     # delete websocket connection
     websocket_connection_manager.disconnect(jetson_id)
 
@@ -137,27 +138,15 @@ async def websocket_endpoint(websocket : WebSocket, jetson_id: str):
     except WebSocketDisconnect:
         websocket_connection_manager.disconnect(jetson_id)
 
-@app.get("/route/fast/{destination}/{jetson_id}")
-def get_fast_route(destination: str, jetson_id: str):
+@app.get("/route/{route_type}/{destination}/{jetson_id}")
+def get_fast_route(route_type:str, destination: str, jetson_id: str):
     path_planner :PathPlanner = map_to_path_planner[jetson_to_map[jetson_id]]
-
     start = path_planner.fetch_jetson_current_location(jetson_id)
-    path = path_planner.find_nearest_path(start, destination, "fastest")
-    print(f"Fastest path is  : {path}")
-    return {"path":path}
-
-@app.get("/route/less-crowd/{destination}/{jetson_id}")
-def get_less_crowded_route(destination:str, jetson_id:str):
-    path_planner :PathPlanner = map_to_path_planner[jetson_to_map[jetson_id]]
-
-    start = path_planner.fetch_jetson_current_location(jetson_id)
-    path = path_planner.find_nearest_path(start, destination, "least_crowded")
-
+    path = path_planner.find_nearest_path(start, destination, route_type)
     return {"path":path}
 
 @app.get("/crowd-heatmap/{jetson_id}")
 def get_crowd_density(jetson_id:str):
     path_planner : PathPlanner = map_to_path_planner[jetson_to_map[jetson_id]]
     density_grid = path_planner.compute_crowd_density(for_heatmap=True)
-
     return {"density_grid":density_grid}

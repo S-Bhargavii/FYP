@@ -1,12 +1,10 @@
-import xml.etree.ElementTree as ET
-from collections import defaultdict
 from fastapi import HTTPException
 import redis
 import json
 import heapq
 from constants import (
     MAP_PATH_DICTIONARY, MAP_LANDMARKS_DICTIONARY, 
-    REDIS_LOCATION_PREFIX, MQTT_COMMANDS_TOPIC_PREFIX
+    REDIS_LOCATION_PREFIX
 )
 import time
 from maps import parse_tileset
@@ -29,7 +27,6 @@ class PathPlanner:
         """
             Gets the grid co-ordinates where the user is located at.
         """
-        print("Fetching current user location")
         user_location_key = f"{REDIS_LOCATION_PREFIX}:{jetson_id}"
         user_location_json = self.redis_client.get(user_location_key)
 
@@ -76,34 +73,21 @@ class PathPlanner:
             else:
                 density_grid[(grid_x, grid_y)] = density_score
 
-        print(density_grid)
-        density_grid = {
-            "(5,10)": 0.9,   # Very dense
-            "(12,20)": 0.8,
-            "(25,35)": 0.7,
-            "(30,40)": 0.5,
-            "(15,25)": 0.3,
-            "(7,12)": 0.2,
-            "(3,4)": 0.1,
-            "(0,0)": 0.0,
-            "(10,15)": 0.0,
-            "(20,30)": 0.0,
-        }
-
         return density_grid
 
-    def find_nearest_path(self, start, destination_landmark: str, preference: str):
+    def find_nearest_path(self, start, destination_landmark: str, route_type: str):
+        # route_type can be less_crowd or fast
         best_path = None
         best_cost = float('inf')
         goal_nodes = self.landmark_cells.get(MAP_LANDMARKS_DICTIONARY[self.map_id][destination_landmark], [])
 
-        if preference == "least_crowded":
+        if route_type == "less_crowd":
             density_grid = self.compute_crowd_density(for_heatmap=False)
         else:
             density_grid = {}
 
         for goal in goal_nodes:
-            path = self.a_star_path_finding(start, goal, destination_landmark, density_grid, preference)
+            path = self.a_star_path_finding(start, goal, destination_landmark, density_grid, route_type)
             if path and len(path) < best_cost:
                 best_path = path
                 best_cost = len(path)
@@ -113,6 +97,7 @@ class PathPlanner:
     def get_neighbours(self, current):
         x, y = current
         columns, rows = self.grid_dimensions
+        # explore all 8 dimensions
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
         neighbours = []
 
@@ -132,8 +117,7 @@ class PathPlanner:
         total_path.reverse()
         return total_path # [(x,y)] --> grid lo centre pixel oka value kindha maarchemu
 
-    def a_star_path_finding(self, start, goal, landmark, density_grid, preference):
-        print("running a*")
+    def a_star_path_finding(self, start, goal, landmark, density_grid, route_type):
         open_set = []
         heapq.heappush(open_set, (0,start))
         came_from = {} # to retrace path
@@ -157,7 +141,7 @@ class PathPlanner:
 
                 tentative_g_score = g_score[current] + 1
 
-                if preference == "least_crowded":
+                if route_type == "less_crowd":
                     density_cost = density_grid.get(neighbour, 0)
                     tentative_g_score += density_cost * 10
 
