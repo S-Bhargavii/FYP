@@ -105,6 +105,18 @@ def register(session: SessionRegistration):
 
     return JSONResponse(content={"message": "Registration successful."}, status_code=200)
 
+@app.get("/map-data/{jetson_id}")
+def get_map_info(jetson_id: str):
+    map: Map =  map_to_map_and_path_planner[jetson_to_map[jetson_id]][0]
+    map_info = {
+        "map_width_in_px": map.map_width_in_px,
+        "map_height_in_px": map.map_height_in_px,
+        "tile_height": map.tile_height,
+        "tile_width": map.tile_width,
+        "landmarks_mapping": map.landmarks_mapping
+    }
+    return {"map_info":map_info}
+
 @app.get("/terminate")
 def terminate(jetson_id:str):
     print(f"Termination requested for {jetson_id}")
