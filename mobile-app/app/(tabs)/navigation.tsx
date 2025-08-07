@@ -152,10 +152,10 @@ const Navigation = () => {
         {/* Floating Reroute Button */}
         {hasDeviated && !isPanelOpen && (
           <TouchableOpacity
-            className="bottom-10 self-center bg-red-600 py-3 px-6 rounded-full z-20"
+            className="bottom-10 self-center bg-red-600 py-3 px-7 rounded-full z-20"
             onPress={handleReroute}
           >
-            <Text className="text-white font-bold">Reroute</Text>
+              <Text className="text-white text-xl font-semibold">Reroute</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -179,7 +179,7 @@ const Navigation = () => {
             </Picker>
 
             <TouchableOpacity className="mt-4 bg-green-600 py-3 rounded-lg" onPress={fetchPath}>
-              <Text className="text-white text-center font-semibold">Start Navigation</Text>
+              <Text className="text-white text-xl text-center font-semibold">Start Navigation</Text>
             </TouchableOpacity>
           </>
         )}

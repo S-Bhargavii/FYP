@@ -15,6 +15,7 @@ export default function CrowdHeatmapScreen() {
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
 
+  // hard code for now
   const mapOriginalWidth = 37 * 8;  // 296 pixels
   const mapOriginalHeight = 56 * 8; // 448 pixels
   const aspectRatio = mapOriginalWidth / mapOriginalHeight;
@@ -44,7 +45,7 @@ export default function CrowdHeatmapScreen() {
       const centerX = (gridX * tileWidth + tileWidth / 2) * (imageWidth / mapOriginalWidth);
       const centerY = (gridY * tileHeight + tileHeight / 2) * (imageHeight / mapOriginalHeight);
 
-      const radius = 60;  // You can adjust this based on desired heat spot size
+      const radius = 20;  // You can adjust this based on desired heat spot size
 
       circles.push(
         <Circle
@@ -53,7 +54,7 @@ export default function CrowdHeatmapScreen() {
             cy={centerY}
             r={radius}
             fill="url(#grad)"
-            opacity={Number(density)}  // <-- Explicit casting to number
+            opacity={Number(density)}
         />
     );
 
@@ -65,13 +66,12 @@ export default function CrowdHeatmapScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
       <Header headerName="Crowd Heatmap" />
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View className='flex-1 justify-center items-center'>
         <View style={{ width: imageWidth, height: imageHeight, position: 'relative' }}>
           <Image
             source={mapImage}
+            className='w-full h-full'
             style={{
-              width: '100%',
-              height: '100%',
               resizeMode: 'contain',
             }}
           />
@@ -94,16 +94,9 @@ export default function CrowdHeatmapScreen() {
 
         <TouchableOpacity
           onPress={fetchDensityData}
-          style={{
-            width: '80%',
-            padding: 15,
-            backgroundColor: '#007bff',
-            borderRadius: 8,
-            marginTop: 20,
-            alignItems: 'center',
-          }}
+          className='w-4/5 py-3 bg-green-600 rounded-lg mt-5 items-center'
         >
-          <Text style={{ color: 'white', fontSize: 16 }}>Fetch Crowd Heatmap</Text>
+          <Text className='text-white text-xl font-semibold'>Fetch Crowd Heatmap</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

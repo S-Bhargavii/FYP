@@ -138,7 +138,7 @@ export default function RegistrationScreen() {
           className={`rounded-full py-3 items-center ${isRegistered ? 'bg-gray-400' : 'bg-green-600'}`}
           disabled={isRegistered}
         >
-          <Text className="text-white font-semibold">Register Session</Text>
+          <Text className="text-white text-xl font-semibold">Register Session</Text>
         </TouchableOpacity>
         
         <View className="h-2" />
@@ -148,7 +148,7 @@ export default function RegistrationScreen() {
           className={`rounded-full py-3 items-center ${!isRegistered ? 'bg-gray-400' : 'bg-red-600'}`}
           disabled={!isRegistered}
         >
-          <Text className="text-white font-semibold">Terminate Session</Text>
+          <Text className="text-white text-xl font-semibold">Terminate Session</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
