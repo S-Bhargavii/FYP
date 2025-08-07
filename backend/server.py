@@ -9,6 +9,7 @@ from constants import MQTT_BROKER, MQTT_PORT, REDIS_HOST, REDIS_LOCATION_PREFIX,
 from connection_manager import ConnectionManager
 from input_validation import SessionRegistration
 from path_planning import PathPlanner
+from map import Map
 
 # Store main event loop globally
 main_event_loop = asyncio.get_event_loop()
@@ -34,7 +35,7 @@ jetson_to_map = {}
 
 # each map will have its corresponding path planner object 
 # has the map info and computes the optimal path, gets crowd info so on
-map_to_path_planner = {}
+map_to_map_and_path_planner = {}
 
 def on_pose_msg(client, userdata, msg):
     """
@@ -95,8 +96,9 @@ def register(session: SessionRegistration):
     }
     jetson_to_map[session.jetson_id] = session.map_id
     
-    if session.map_id not in map_to_path_planner:
-        map_to_path_planner[session.map_id] = PathPlanner(redis_client, session.map_id, jetson_to_map)
+    if session.map_id not in map_to_map_and_path_planner:
+        map = Map(session.map_id)
+        map_to_map_and_path_planner[session.map_id] = [map, PathPlanner(map, redis_client, jetson_to_map)]
 
     # publish on corresponding jetson's topic 
     mqtt_client.publish(topic=topic, payload=json.dumps(payload))
@@ -135,13 +137,13 @@ async def websocket_endpoint(websocket : WebSocket, jetson_id: str):
 
 @app.get("/route/{route_type}/{destination}/{jetson_id}")
 def get_fast_route(route_type:str, destination: str, jetson_id: str):
-    path_planner :PathPlanner = map_to_path_planner[jetson_to_map[jetson_id]]
+    path_planner :PathPlanner = map_to_map_and_path_planner[jetson_to_map[jetson_id]][1]
     start = path_planner.fetch_jetson_current_location(jetson_id)
     path = path_planner.find_nearest_path(start, destination, route_type)
     return {"path":path}
 
 @app.get("/crowd-heatmap/{jetson_id}")
 def get_crowd_density(jetson_id:str):
-    path_planner : PathPlanner = map_to_path_planner[jetson_to_map[jetson_id]]
+    path_planner : PathPlanner = map_to_map_and_path_planner[jetson_to_map[jetson_id]][1]
     density_grid = path_planner.compute_crowd_density(for_heatmap=True)
     return {"density_grid":density_grid}

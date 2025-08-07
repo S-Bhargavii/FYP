@@ -3,18 +3,16 @@ import redis
 import json
 import heapq
 from constants import (
-    MAP_PATH_DICTIONARY, MAP_LANDMARKS_DICTIONARY, 
     REDIS_LOCATION_PREFIX
 )
 import time
 from map import Map
 
 class PathPlanner:
-    def __init__(self, redis_client: redis.Redis, map_id: str, jetson_to_map):
+    def __init__(self, map: Map, redis_client: redis.Redis, jetson_to_map):
         self.redis_client = redis_client
-        self.map_id = map_id
         self.jetson_to_map = jetson_to_map
-        self.map = Map(map_id)
+        self.map = map
 
     def fetch_jetson_current_location(self, jetson_id):
         """
@@ -40,7 +38,7 @@ class PathPlanner:
 
         for key in keys:
             _, current_jetson_id = key.split(":")
-            if self.jetson_to_map.get(current_jetson_id) != self.map_id:
+            if self.jetson_to_map.get(current_jetson_id) != self.map.map_id:
                 continue
 
             user_location_data = json.loads(self.redis_client.get(key))
