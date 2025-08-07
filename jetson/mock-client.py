@@ -1,5 +1,4 @@
 import threading
-import time
 import json
 import paho.mqtt.client as mqtt
 
@@ -17,8 +16,8 @@ def pose_publisher():
     while not stop_event.is_set():
         pose = {"x": x, "y": y}
         client.publish(POSE_TOPIC, json.dumps(pose))
-        print(f"Published: {pose}")
         x = (x + 1) % 296
+
         # Wait for 0.5 seconds or until stop_event is set
         if stop_event.wait(0.5):
             break
@@ -32,6 +31,7 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     global publisher_thread
+
     try:
         payload = json.loads(msg.payload.decode())
         action = payload.get("action")
@@ -40,9 +40,13 @@ def on_message(client, userdata, msg):
         if action == "load_map":
             if publisher_thread is None or not publisher_thread.is_alive():
                 stop_event.clear()
+                # publishing is done in another thread so that the client 
+                # can keep listening to incoming messages on the topic
                 publisher_thread = threading.Thread(target=pose_publisher)
                 publisher_thread.start()
+
                 print("Started publishing thread.")
+
             else:
                 print("Publishing thread already running.")
 
