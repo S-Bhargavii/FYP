@@ -7,21 +7,14 @@ from constants import (
     REDIS_LOCATION_PREFIX
 )
 import time
-from maps import parse_tileset
+from map import Map
 
 class PathPlanner:
     def __init__(self, redis_client: redis.Redis, map_id: str, jetson_to_map):
         self.redis_client = redis_client
         self.map_id = map_id
         self.jetson_to_map = jetson_to_map
-        self.map_path = MAP_PATH_DICTIONARY[map_id]
-        self.landmarks = MAP_LANDMARKS_DICTIONARY[map_id]
-        # landmark_cells is the landmark to cells mapping --> cells is an array comprising of the 
-        # cells where the landmark is located at. 
-        # obstructions --> list of obstructions
-        # self.tile_dimensions --> (tile width in pixels, tile height in pixels)
-        # self.grid_dimensions --> (number of columns , number of rows) in total grid
-        self.landmark_cells, self.obstructions, self.grid, self.tile_dimensions, self.grid_dimensions = parse_tileset(self.map_path)
+        self.map = Map(map_id)
 
     def fetch_jetson_current_location(self, jetson_id):
         """
@@ -36,8 +29,8 @@ class PathPlanner:
         user_location = json.loads(user_location_json)
         x, y = user_location["x"], user_location["y"]
 
-        grid_x = int(x // self.tile_dimensions[0])
-        grid_y = int(y // self.tile_dimensions[1])
+        grid_x = int(x // self.map.tile_width)
+        grid_y = int(y // self.map.tile_height)
 
         return (grid_x, grid_y)
 
@@ -56,8 +49,8 @@ class PathPlanner:
                 # if the time at which the current user location is 
                 # recorded is more than 5s skip it.
                 continue
-            grid_x = int(x // self.tile_dimensions[0])
-            grid_y = int(y // self.tile_dimensions[1])
+            grid_x = int(x // self.map.tile_width)
+            grid_y = int(y // self.map.tile_height)
             grid_key = (grid_x, grid_y)
 
             grid_density[grid_key] = grid_density.get(grid_key, 0) + 1
@@ -79,7 +72,7 @@ class PathPlanner:
         # route_type can be less_crowd or fast
         best_path = None
         best_cost = float('inf')
-        goal_nodes = self.landmark_cells.get(MAP_LANDMARKS_DICTIONARY[self.map_id][destination_landmark], [])
+        goal_nodes = self.map.get_goal_nodes(destination_landmark)
 
         if route_type == "less_crowd":
             density_grid = self.compute_crowd_density(for_heatmap=False)
@@ -96,7 +89,8 @@ class PathPlanner:
 
     def get_neighbours(self, current):
         x, y = current
-        columns, rows = self.grid_dimensions
+        columns, rows = self.map.map_width_in_tiles, self.map.map_height_in_tiles
+
         # explore all 8 dimensions
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
         neighbours = []
@@ -109,11 +103,13 @@ class PathPlanner:
 
     def reconstruct_path(self, came_from, current):
         total_path = [current]
+
         while current in came_from:
             current = came_from[current]
-            x_pixel = (current[0] * self.tile_dimensions[0]) + self.tile_dimensions[0]//2
-            y_pixel = (current[1] * self.tile_dimensions[1]) + self.tile_dimensions[1]//2
+            x_pixel = (current[0] * self.map.tile_width) + self.map.tile_width//2
+            y_pixel = (current[1] * self.map.tile_height) + self.map.tile_height//2
             total_path.append((x_pixel, y_pixel))
+            
         total_path.reverse()
         return total_path # [(x,y)] --> grid lo centre pixel oka value kindha maarchemu
 
@@ -122,6 +118,7 @@ class PathPlanner:
         heapq.heappush(open_set, (0,start))
         came_from = {} # to retrace path
         g_score = {start: 0}
+        goal_id = self.map.get_goal_id(landmark)
 
         def heuristic(a, b):
             return abs(a[0] - b[0]) + abs(a[1] - b[1])
@@ -135,8 +132,8 @@ class PathPlanner:
             neighbours = self.get_neighbours(current)
 
             for neighbour in neighbours:
-                grid_value = self.grid[neighbour[1]][neighbour[0]]
-                if grid_value != 0 and grid_value != MAP_LANDMARKS_DICTIONARY[self.map_id][landmark]:
+                grid_value = self.map.grid[neighbour[1]][neighbour[0]]
+                if grid_value != 0 and grid_value != goal_id:
                     continue
 
                 tentative_g_score = g_score[current] + 1
