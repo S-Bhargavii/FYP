@@ -2,29 +2,37 @@ import React, { JSX, useEffect, useState } from 'react';
 import { View, Text, Image, Dimensions, TouchableOpacity, SafeAreaView } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import Header from '@/components/Header';
-import { jetsonIdAtom } from '../state/globalState';
+import { jetsonIdAtom, mapDataAtom, mapIdAtom } from '../state/globalState';
 import { useAtom } from 'jotai';
 import axios from 'axios';
+
+const mapImages: Record<'map_01' | 'map_02' | 'map_03', any> = {
+  "map_01": require('@/assets/images/map_01.png'),
+  "map_02": require('@/assets/images/map_01.png'),
+  "map_03": require('@/assets/images/map_01.png'),
+};
 
 export default function CrowdHeatmapScreen() {
   const [densityGrid, setDensityGrid] = useState({});
   const [jetsonId, setJetsonId] = useAtom(jetsonIdAtom);
-  
-  const mapImage = require('@/assets/images/map_01.png');
+  const [mapId,] = useAtom(mapIdAtom);
+  const [mapData,] = useAtom(mapDataAtom);
+
+  const fallbackMapId = "map_01";
+  const selectedMapId = mapId || fallbackMapId;
+  const mapImage = mapImages[selectedMapId as keyof typeof mapImages] || mapImages[fallbackMapId];
 
   const screenWidth = Dimensions.get('window').width;
-  const screenHeight = Dimensions.get('window').height;
 
-  // hard code for now
-  const mapOriginalWidth = 37 * 8;  // 296 pixels
-  const mapOriginalHeight = 56 * 8; // 448 pixels
+  const mapOriginalWidth = mapData?.["map_width_in_px"] ?? 296;  // 296 pixels as fallback
+  const mapOriginalHeight = mapData?.["map_height_in_px"] ?? 448; // 448 pixels
   const aspectRatio = mapOriginalWidth / mapOriginalHeight;
 
   const imageWidth = screenWidth;
   const imageHeight = screenWidth / aspectRatio;
 
-  const tileWidth = 8;  // same as backend tile_dimensions[0]
-  const tileHeight = 8; // same as backend tile_dimensions[1]
+  const tileWidth = mapData?.["tile_width"] ?? 8;  // same as backend tile_dimensions[0]
+  const tileHeight = mapData?.["tile_height"] ?? 8; // same as backend tile_dimensions[1]
 
   const fetchDensityData = async () => {
     try {

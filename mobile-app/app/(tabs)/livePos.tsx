@@ -1,20 +1,29 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Dimensions, Animated, Easing, SafeAreaView } from 'react-native';
-import { jetsonIdAtom, mapIdAtom, poseAtom } from '../state/globalState';
+import { jetsonIdAtom, mapDataAtom, mapIdAtom, poseAtom } from '../state/globalState';
 import { useAtom } from 'jotai';
 import Header from '@/components/Header';
+
+const mapImages: Record<'map_01' | 'map_02' | 'map_03', any> = {
+  "map_01": require('@/assets/images/map_01.png'),
+  "map_02": require('@/assets/images/map_01.png'),
+  "map_03": require('@/assets/images/map_01.png'),
+};
 
 export default function LiveLocationScreen() {
   const [position] = useAtom(poseAtom);  // position = { x: ..., y: ... }
 
-  const mapImage = require('@/assets/images/map_01.png');
+  const [mapId,] = useAtom(mapIdAtom);
+  const [mapData,] = useAtom(mapDataAtom);
+
+  const fallbackMapId = "map_01";
+  const selectedMapId = mapId || fallbackMapId;
+  const mapImage = mapImages[selectedMapId as keyof typeof mapImages] || mapImages[fallbackMapId];
 
   const screenWidth = Dimensions.get('window').width;
-  const screenHeight = Dimensions.get('window').height;
 
-  // hardcode for now
-  const mapOriginalWidth = 37 * 8;  // 296 pixels
-  const mapOriginalHeight = 56 * 8; // 448 pixels
+  const mapOriginalWidth = mapData?.["map_width_in_px"] ?? 296;  // 296 pixels as fallback
+  const mapOriginalHeight = mapData?.["map_height_in_px"] ?? 448; // 448 pixels as fallback
   const aspectRatio = mapOriginalWidth / mapOriginalHeight;
 
   const imageWidth = screenWidth;

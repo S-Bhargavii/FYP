@@ -1,5 +1,5 @@
 import { useAtom } from 'jotai';
-import { jetsonIdAtom, mapIdAtom, poseAtom, wsConnectionAtom } from '../state/globalState';
+import { jetsonIdAtom, mapDataAtom, mapIdAtom, poseAtom, wsConnectionAtom } from '../state/globalState';
 import { View, Text, Image, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -9,11 +9,23 @@ import axios from "axios";
 export default function RegistrationScreen() {
   const [jetsonId, setJetsonId] = useAtom(jetsonIdAtom);
   const [mapId, setMapId] = useAtom(mapIdAtom);
+  const [, setMapData] = useAtom(mapDataAtom);
   const [isRegistered, setIsRegistered] = useState(false);
   const [loading, setLoading] = useState(false);
   const [, setPose] = useAtom(poseAtom);
   const [wsConnection, setWsConnection] = useAtom(wsConnectionAtom);
 
+  useEffect(() => {
+      const fetchMapData = async () => {
+        if (mapId != "") {
+          const response = await axios.get(`http://10.0.2.2:8000/map-data/${jetsonId}`);
+          const mapData = response.data.map_info;
+          setMapData(mapData);
+        }
+      };
+      fetchMapData();
+    }, [isRegistered]);
+  
   const handleRegister = () => {
     setLoading(true);
     axios.post("http://10.0.2.2:8000/register", {

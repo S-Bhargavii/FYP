@@ -2,34 +2,37 @@ import { View, Text, SafeAreaView, Dimensions, Animated, Easing, TouchableOpacit
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom } from 'jotai'
-import { jetsonIdAtom, poseAtom } from '../state/globalState'
+import { jetsonIdAtom, mapDataAtom, mapIdAtom, poseAtom } from '../state/globalState'
 import axios from 'axios'
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 
+const mapImages: Record<'map_01' | 'map_02' | 'map_03', any> = {
+  "map_01": require('@/assets/images/map_01.png'),
+  "map_02": require('@/assets/images/map_01.png'),
+  "map_03": require('@/assets/images/map_01.png'),
+};
+
 const Navigation = () => {
   const [position] = useAtom(poseAtom);
   const [jetsonId] = useAtom(jetsonIdAtom);
+  const [mapId,] = useAtom(mapIdAtom);
+  const [mapData,] = useAtom(mapDataAtom);
 
-  const [destinations] = useState([
-    "Join or Die : An Americal Army Takes Shape Boston, 1775",
-    "King George's Statue",
-    "Chain Of States",
-    "Independence Theatre",
-    "The War Begins, 1775",
-    "Boston's Liberty Tree",
-    "Prologue: Tearing Down The King",
-    "The Price Of Victory"
-  ]);
-  const [selectedDestination, setSelectedDestination] = useState("The Price Of Victory");
+  const destinations: { [key: string]: string } = mapData?.["landmarks_mapping"] ?? {};
+  const destinationKeys = Object.keys(destinations);
+  const [selectedDestination, setSelectedDestination] = useState(destinationKeys[0] ?? "");
   const [selectedRouteType, setSelectedRouteType] = useState("fast");
   const [pathPoints, setPathPoints] = useState([]);
   const [hasDeviated, setHasDeviated] = useState(false);
 
-  const mapImage = require('@/assets/images/map_01.png');
+  const fallbackMapId = "map_01";
+  const selectedMapId = mapId || fallbackMapId;
+  const mapImage = mapImages[selectedMapId as keyof typeof mapImages] || mapImages[fallbackMapId];
+
   const screenWidth = Dimensions.get('window').width;
-  const mapOriginalWidth = 296;
-  const mapOriginalHeight = 448;
+  const mapOriginalWidth = mapData?.["map_width_in_px"] ?? 296;  // 296 pixels as fallback
+  const mapOriginalHeight = mapData?.["map_height_in_px"] ?? 448; // 448 pixels as fallback
   const aspectRatio = mapOriginalWidth / mapOriginalHeight;
 
   const imageWidth = screenWidth;
@@ -167,8 +170,8 @@ const Navigation = () => {
           <>
             <Text className="text-base font-bold mb-2">Destination:</Text>
             <Picker selectedValue={selectedDestination} onValueChange={setSelectedDestination}>
-              {destinations.map((dest, idx) => (
-                <Picker.Item key={idx} label={dest} value={dest} />
+              {destinationKeys.map((key, idx) => (
+                <Picker.Item key={idx} label={key} value={key} />
               ))}
             </Picker>
 
