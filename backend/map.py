@@ -55,6 +55,7 @@ def parse_landmarks_json(json_file:str):
 
 class Map:
     def __init__(self, map_id:str):
+        self.map_id = map_id
         self.map_xml_path = f"{map_id}/tile_id.xml"
         self.map_image_path = f"{map_id}/image.png"
         self.map_landmarks_path = f"{map_id}/landmarks.json"
