@@ -1,15 +1,10 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 import redis
-import uuid
 import paho.mqtt.client as mqtt
 import json 
-from typing import List, Dict, Tuple
 import asyncio
 import time
-import heapq 
-from maps import parse_tileset
 from constants import MQTT_BROKER, MQTT_PORT, REDIS_HOST, REDIS_LOCATION_PREFIX, REDIS_DB, REDIS_PORT, MQTT_COMMANDS_TOPIC_PREFIX, MQTT_POSE_TOPIC_PREFIX
 from connection_manager import ConnectionManager
 from input_validation import SessionRegistration
