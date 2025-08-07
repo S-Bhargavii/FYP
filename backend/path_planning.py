@@ -49,7 +49,6 @@ class PathPlanner:
         grid_density = {}
 
         for key in keys:
-            print(key)
             _, current_jetson_id = key.split(":")
             if self.jetson_to_map.get(current_jetson_id) != self.map_id:
                 continue
@@ -76,6 +75,20 @@ class PathPlanner:
                 density_grid[key_str] = density_score
             else:
                 density_grid[(grid_x, grid_y)] = density_score
+
+        print(density_grid)
+        density_grid = {
+            "(5,10)": 0.9,   # Very dense
+            "(12,20)": 0.8,
+            "(25,35)": 0.7,
+            "(30,40)": 0.5,
+            "(15,25)": 0.3,
+            "(7,12)": 0.2,
+            "(3,4)": 0.1,
+            "(0,0)": 0.0,
+            "(10,15)": 0.0,
+            "(20,30)": 0.0,
+        }
 
         return density_grid
 
