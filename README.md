@@ -1,7 +1,7 @@
 # SLAM based Visual Localisation System 
 
-### 🚧 work in progress
+### 🚧 Work In Progress
 
-[Brief Design Document](https://github.com/S-Bhargavii/FYP/blob/main/documentation/DesignDoc.pdf)
-[Initial Demo](https://github.com/S-Bhargavii/FYP/blob/main/documentation/FYP%20demo.mp4)
+### [First Prototype Brief Design Document](https://github.com/S-Bhargavii/FYP/blob/main/documentation/DesignDoc.pdf) 
+### [First Prototype Demo](https://github.com/S-Bhargavii/FYP/blob/main/documentation/FYP%20demo.mp4)
 
