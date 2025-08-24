@@ -129,7 +129,7 @@ const Navigation = () => {
 
           <Svg width={imageWidth} height={imageHeight} className="absolute top-0 left-0 z-10">
             {transformedPathPoints.map((p, idx) => (
-              <Circle key={idx} cx={p.x} cy={p.y} r={4} fill="blue" />
+              <Circle key={idx} cx={p.x} cy={p.y} r={2.5} fill="blue" />
             ))}
             {!isNaN(position.x) && !isNaN(position.y) && (
               <Circle
