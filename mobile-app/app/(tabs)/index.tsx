@@ -1,5 +1,6 @@
 import { useAtom } from 'jotai';
-import { jetsonIdAtom, mapDataAtom, mapIdAtom, poseAtom, wsConnectionAtom } from '../state/globalState';
+import { jetsonIdAtom, mapDataAtom, mapIdAtom, poseAtom, sseConnectionAtom } from '../state/globalState';
+import EventSource from 'react-native-sse';
 import { View, Text, Image, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -13,7 +14,7 @@ export default function RegistrationScreen() {
   const [isRegistered, setIsRegistered] = useState(false);
   const [loading, setLoading] = useState(false);
   const [, setPose] = useAtom(poseAtom);
-  const [wsConnection, setWsConnection] = useAtom(wsConnectionAtom);
+  const [sseConnection, setSseConnection] = useAtom(sseConnectionAtom);
 
   useEffect(() => {
       const fetchMapData = async () => {
@@ -39,18 +40,27 @@ export default function RegistrationScreen() {
       // open websocket connection
       try{
         // create a websocket object
-        const ws = new WebSocket(`ws://10.0.2.2:8000/ws/${jetsonId}`)
+        const sse = new EventSource(`http://10.0.2.2:8000/sse/${jetsonId}`);
         
-        // configure the websocket
-        ws.onmessage = (event) => {
-          const data = JSON.parse(event.data)
-          setPose({x: data.x, y: data.y})
-        }
-        ws.onopen = () => console.log("Websocket connected")
-        ws.onclose = () => console.log("Websocket closed")
-        ws.onerror = (err) => console.log("Websocket Error", err)
-
-        setWsConnection(ws);
+        sse.addEventListener("message", (event)=>{
+          if (event.data) {
+            const data = JSON.parse(event.data);
+            console.log(data);
+            setPose({x: data.x, y: data.y});
+          }
+        })
+        
+        sse.addEventListener("error", (event)=>{
+          if(event.type === "error"){
+            console.error("SSE error occurred: ", event.message);
+          }
+          else if(event.type === "exception"){
+            console.error("SSE error occurred: ", event.error);
+          }
+        })
+        
+        sse.open(); // start listening for events
+        setSseConnection(sse);
       } catch(error){
         console.error("Registration failed : ", error);
       }
@@ -72,9 +82,9 @@ export default function RegistrationScreen() {
     .finally(() => setLoading(false));
 
     try{
-      if(wsConnection){
-        wsConnection.close(); // close the websocket connection when user terminates the session
-        setWsConnection(null);
+      if(sseConnection){
+        sseConnection.close(); // close the websocket connection when user terminates the session
+        setSseConnection(null);
       }
       
       setPose({x:0, y:0}) // reset the pose

@@ -1,3 +1,4 @@
+import EventSource from 'react-native-sse';
 // keeping track of the global state 
 import { atom } from 'jotai';
 
@@ -14,4 +15,4 @@ export const mapDataAtom = atom(null);
 export const poseAtom = atom({ x: 0, y: 0 });
 
 // WebSocket Connection Atom (store the connection instance)
-export const wsConnectionAtom = atom<WebSocket | null>(null);
+export const sseConnectionAtom = atom<EventSource  | null>(null);
