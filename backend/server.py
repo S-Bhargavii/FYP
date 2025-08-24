@@ -6,7 +6,7 @@ import json
 import asyncio
 import time
 from constants import MQTT_BROKER, MQTT_PORT, REDIS_HOST, REDIS_LOCATION_PREFIX, REDIS_DB, REDIS_PORT, MQTT_COMMANDS_TOPIC_PREFIX, MQTT_POSE_TOPIC_PREFIX
-from connection_manager import ConnectionManager
+from connection_manager import WebSocketConnectionManager
 from input_validation import SessionRegistration
 from path_planning import PathPlanner
 from map import Map
@@ -26,7 +26,7 @@ mqtt_client.loop_start()
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
 
 # websocket connection manager 
-websocket_connection_manager = ConnectionManager()
+websocket_connection_manager = WebSocketConnectionManager()
 
 # jetson_to_map --> contains mapping between jetson id and 
 # the map the jetson is currently being used in

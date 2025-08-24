@@ -1,7 +1,7 @@
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import Dict
  
-class ConnectionManager:
+class WebSocketConnectionManager:
     def __init__(self):
         self.active_connections : Dict[str, WebSocket] = {}  # jetson_id -> websocket mapping
 
