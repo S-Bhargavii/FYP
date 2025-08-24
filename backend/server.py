@@ -1,12 +1,12 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import redis
 import paho.mqtt.client as mqtt
 import json 
 import asyncio
 import time
 from constants import MQTT_BROKER, MQTT_PORT, REDIS_HOST, REDIS_LOCATION_PREFIX, REDIS_DB, REDIS_PORT, MQTT_COMMANDS_TOPIC_PREFIX, MQTT_POSE_TOPIC_PREFIX
-from connection_manager import WebSocketConnectionManager
+from connection_manager import SSEConnectionManager
 from input_validation import SessionRegistration
 from path_planning import PathPlanner
 from map import Map
@@ -26,7 +26,7 @@ mqtt_client.loop_start()
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
 
 # websocket connection manager 
-websocket_connection_manager = WebSocketConnectionManager()
+sse_connection_manager = SSEConnectionManager()
 
 # jetson_to_map --> contains mapping between jetson id and 
 # the map the jetson is currently being used in
@@ -36,6 +36,11 @@ jetson_to_map = {}
 # each map will have its corresponding path planner object 
 # has the map info and computes the optimal path, gets crowd info so on
 map_to_map_and_path_planner = {}
+
+async def sse_event_generator(queue: asyncio.Queue):
+    while True:
+        message = await queue.get()
+        yield f"data: {message}\n\n"
 
 def on_pose_msg(client, userdata, msg):
     """
@@ -65,7 +70,7 @@ def on_pose_msg(client, userdata, msg):
         # meaning you don't want to stop listening to incoming messages while this 
         # part of the code is running.
         asyncio.run_coroutine_threadsafe(
-            websocket_connection_manager.send_to_jetson_user(jetson_id, payload_str),
+            sse_connection_manager.send_to_jetson_user(jetson_id, payload_str),
             main_event_loop
         )
 
@@ -133,19 +138,16 @@ def terminate(jetson_id:str):
     del jetson_to_map[jetson_id]
 
     # delete websocket connection
-    websocket_connection_manager.disconnect(jetson_id)
+    sse_connection_manager.disconnect(jetson_id)
 
     return JSONResponse(content={"message": "Termination successful."}, status_code=200)
 
-@app.websocket("/ws/{jetson_id}")
-async def websocket_endpoint(websocket : WebSocket, jetson_id: str):
-    await websocket_connection_manager.connect(websocket, jetson_id)
+@app.get("/sse/{jetson_id}")
+async def sse_endpoint(jetson_id: str):
+    queue = sse_connection_manager.connect(jetson_id)
+    response = StreamingResponse(sse_event_generator(queue), media_type="text/event-stream")
+    return response
 
-    try:
-        while True:
-            await websocket.receive_text() # to keep connection alive 
-    except WebSocketDisconnect:
-        websocket_connection_manager.disconnect(jetson_id)
 
 @app.get("/route/{route_type}/{destination}/{jetson_id}")
 def get_fast_route(route_type:str, destination: str, jetson_id: str):
