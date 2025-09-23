@@ -1,153 +1,88 @@
 import paho.mqtt.client as mqtt
-import json 
 import subprocess
-import time 
-import yaml
-import signal
-import rospy
 import threading
-from geometry_msgs.msg import Point
+import signal
+import sys
+import json
 
-BROKER = "broker.hivemq.com"
-PORT = 1883
-# topic where commands get published by the server --> the jetson subscribes to this topic
-COMMANDS_TOPIC = "/commands/jetson_001" 
-# topic where the user pose is published by the jetson 
-POSE_TOPIC = "/pose/jetson_001"
-ROS_TOPIC = "camera_real_world_position"
+MQTT_BROKER = "broker.hivemq.com"
+MQTT_PORT = 1883
+TOPIC_COMMANDS = "/commands"
+TOPIC_POSE = "/pose"
 
-# process handles
-processes = []
-client = mqtt.Client()
+slam_process = None
+reader_thread = None
+running = True
 
-def on_connect(client, userdata, flags, rc):
-    """
-        Subscribe to the commands topic as soon 
-        as the connection is established with the 
-        broker.
-    """
-    if rc == 0 :
-        print("Connected to MQTT broker")
-        client.subscribe(COMMANDS_TOPIC)
-    else:
-        print(f"Failed to connect to broker with code {rc}")
+def read_slam_output(process):
+    """Reads stdout from SLAM process and publishes pose lines to MQTT"""
+    for line in iter(process.stdout.readline, b''):
+        try:
+            line = line.decode().strip()
+            if line.startswith("Current pose"):
+                parts = line.split(",")
+                x = float(parts[0].split(":")[-1].strip())
+                y = float(parts[1].split(":")[-1].strip())
+                
+                pose_msg = {"x": x, "y": y}
+                mqtt_client.publish(TOPIC_POSE, json.dumps(pose_msg))
+                print(f"Published pose: {pose_msg}")
+        except Exception as e:
+            print(f"Error parsing line: {e}")
 
 def on_message(client, userdata, msg):
-    """
-        Callback function that gets called when a message 
-        is received on the subscribed topic.
-    """
+    global slam_process, reader_thread
     try:
         payload = json.loads(msg.payload.decode())
+        action = payload.get("action", "").strip()
+        print(f"Received command: {payload}")
 
-        if payload["action"] == "load_map":
-            print(f"Loading map: {payload['map_id']} and starting localisation")
-            start_processes(payload["map_id"])
+        if action == "load_map":
+            if slam_process is None:
+                print("Starting ORB-SLAM3...")
+                slam_process = subprocess.Popen(
+                    ["./Examples/RGB-D/rgbd_realsense_D435i",
+                     "/home/bhargavi/ORB_SLAM3/Vocabulary/ORBvoc.txt",
+                     "/home/bhargavi/ORB_SLAM3/Examples/RGB-D/RealSense_D435i.yaml"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT
+                )
+                reader_thread = threading.Thread(target=read_slam_output, args=(slam_process,))
+                reader_thread.daemon = True
+                reader_thread.start()
+            else:
+                print("SLAM process already running.")
 
-            # Start ROS Subscriber in a separate thread
-            ros_thread = threading.Thread(target=ros_listener)
-            ros_thread.start()
-        elif payload["action"] == "shutdown":
-            print("Received shutdown command")
-            shutdown()
-            # don't shutdown the MQTT client here, to listen to further commands
-    except Exception as e:
-        print(f"Error processing message: {e}")
+        elif action == "shutdown":
+            if slam_process is not None:
+                print("Shutting down ORB-SLAM3...")
+                slam_process.terminate()
+                slam_process = None
+            else:
+                print("No SLAM process to shut down.")
 
-def update_yaml_with_map_id(map_id):
-    with open('RealSense_D435i.yaml', 'r') as file:
-        config = yaml.safe_load(file)
-    
-    config["LoadAtlasFromFile"] = f"{map_id}"
+    except json.JSONDecodeError:
+        print(f"Received invalid JSON: {msg.payload.decode()}")
 
-    with open("RealSense_D435i.yaml", "w") as file:
-        yaml.safe_dump(config, file, default_flow_style=False)
+def cleanup(sig=None, frame=None):
+    global slam_process
+    print("Cleaning up...")
+    if slam_process is not None:
+        slam_process.terminate()
+    mqtt_client.disconnect()
+    sys.exit(0)
 
-    print("Updated yaml with requested map")
+# ---------------- MQTT SETUP ----------------
+mqtt_client = mqtt.Client()
+mqtt_client.on_message = on_message
+mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+mqtt_client.subscribe(TOPIC_COMMANDS)
+mqtt_client.loop_start()
 
-def start_processes(map_id):
-    """
-        Start the necessary processes for running SLAM 
-        in localisation mode
-    """
+# Catch Ctrl+C
+signal.signal(signal.SIGINT, cleanup)
+signal.signal(signal.SIGTERM, cleanup)
 
-    # start the camera streaming process 
-    cam = subprocess.Popen(
-        ["roslaunch", "realsense2_camera", "rs_camera.launch",
-        "align_depth:=true",
-        "depth_width:=640", "depth_height:=480",
-        "color_width:=640", "color_height:=480",
-        "color_fps:=30", "depth_fps:=30"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    )
-
-    processes.append(cam)
-
-    time.sleep(5) # wait for the camera process to start 
-
-    # update the yaml file with the map id
-    update_yaml_with_map_id(map_id)
-    # start ORB_SLAM3
-    slam = subprocess.Popen(["rosrun", "ORB_SLAM3", "real_sense_rgbd_ros",
-                             "/home/bhargavi/Dev/ORB_SLAM3/Vocabulary/ORBvoc.txt",
-                             "/home/bhargavi/Dev/ORB_SLAM3/Examples_old/ROS/ORB_SLAM3/src/Updated_RealSense_D435i.yaml",
-                             "loc"]) # run in localisation mode
-    # add processes to the list of running processes
-    processes.append(slam)
-
-def shutdown():
-    """
-        Stop the running processes
-    """
-    print("Shutting down processes")
-    for p in processes:
-        p.send_signal(signal.SIGINT) # clean shutdown 
-
-    time.sleep(3) # wait for the processes to shut down completely
-
-def pose_callback(msg):
-    """
-        Calbasck function to be executed when a pose message is received.
-        Publishes the user pose to the MQTT Broker for the backend to consume.
-    """
-    try:
-        user_pose = {
-            'x': msg.x,
-            'y': msg.y,
-        }
-        # Only strings can be published to MQTT
-        client.publish(POSE_TOPIC, json.dumps(user_pose))
-        rospy.loginfo(f"Published user pose: {user_pose}")
-    except Exception as e:
-        print(f"Error publishing pose: {e}")
-
-def ros_listener():
-    """
-        The Slam node publishes the user pose to this topic.
-        The server subscribes to this topic and listens for 
-        the user pose. Once received, it publishes the user on
-        the MQTT topic for the backend to consume.
-    """
-    # creat a subscriber node to listen for user pose
-    rospy.init_node('pose_listener', anonymous=True)
-    # publishes the x,y co-ordinates of the user 
-    # position on the 2D map
-    rospy.Subscriber(ROS_TOPIC, Point, pose_callback)
-    rospy.spin()
-
-if __name__ == "__main__":
-    # setup MQTT client 
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-    # connect to broker 
-    client.connect(BROKER, PORT, 60)
-
-    # blocking loop to process network traffic and dispatch callbacks
-    try:
-        client.loop_forever()  # Blocking call
-    except KeyboardInterrupt:
-        shutdown()
-        client.loop_stop()
-        print("Shutting down...")
+print("Jetson listener running...")
+while running:
+    pass
