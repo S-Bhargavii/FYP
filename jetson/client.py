@@ -15,10 +15,14 @@ reader_thread = None
 running = True
 
 def read_slam_output(process):
-    """Reads stdout from SLAM process and publishes pose lines to MQTT"""
+    """Reads stdout from SLAM process, prints logs, and publishes pose lines to MQTT"""
     for line in iter(process.stdout.readline, b''):
         try:
             line = line.decode().strip()
+            # Print every SLAM output line
+            print(f"[SLAM LOG] {line}")
+
+            # If the line contains the current pose, publish it
             if line.startswith("Current pose"):
                 parts = line.split(",")
                 x = float(parts[0].split(":")[-1].strip())
@@ -26,7 +30,8 @@ def read_slam_output(process):
                 
                 pose_msg = {"x": x, "y": y}
                 mqtt_client.publish(TOPIC_POSE, json.dumps(pose_msg))
-                print(f"Published pose: {pose_msg}")
+                print(f"[POSE PUBLISHED] {pose_msg}")
+
         except Exception as e:
             print(f"Error parsing line: {e}")
 
