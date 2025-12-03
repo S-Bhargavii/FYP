@@ -1,3 +1,4 @@
 *.pyc
 notes.txt
 jetson-setup-tools/*
+documentation/*

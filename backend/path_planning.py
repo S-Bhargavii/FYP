@@ -61,19 +61,6 @@ class PathPlanner:
             if for_heatmap:
                 key_str = f"({grid_x}, {grid_y})"
                 density_grid[key_str] = density_score
-                print(density_grid)
-                density_grid = {
-                    "(5,10)": 0.9,   # Very dense
-                    "(12,20)": 0.8,
-                    "(25,35)": 0.7,
-                    "(30,40)": 0.5,
-                    "(15,25)": 0.3,
-                    "(7,12)": 0.2,
-                    "(3,4)": 0.1,
-                    "(0,0)": 0.0,
-                    "(10,15)": 0.0,
-                    "(20,30)": 0.0,
-                }
             else:
                 density_grid[(grid_x, grid_y)] = density_score
         
@@ -174,6 +161,143 @@ class PathPlanner:
     #     total_path.reverse()
     #     return total_path
 
+    # def reconstruct_path(self, came_from, current):
+    #     path = []
+    #     points = []
+
+    #     # backtrack to get waypoints
+    #     while current in came_from and came_from[current] != current:
+    #         path.append(current)
+    #         current = came_from[current]
+    #     path.append(current)
+    #     path.reverse()
+
+    #     # interpolate between waypoints
+    #     for i in range(len(path) - 1):
+    #         x1 = (path[i][0] * self.map.tile_width) + self.map.tile_width//2
+    #         y1 = (path[i][1] * self.map.tile_height) + self.map.tile_height//2
+    #         x2 = (path[i+1][0] * self.map.tile_width) + self.map.tile_width//2
+    #         y2 = (path[i+1][1] * self.map.tile_height) + self.map.tile_height//2
+
+    #         segment = self.interpolate_line((x1, y1), (x2, y2))
+    #         if i > 0:
+    #             segment = segment[1:]  # avoid duplicating junction point
+    #         points.extend(segment)
+
+    #     return points
+
+    # def a_star_path_finding(self, start, goal, landmark, density_grid, route_type):
+    #     open_set = []
+    #     heapq.heappush(open_set, (0,start))
+    #     came_from = {} # to retrace path
+    #     g_score = {start: 0}
+    #     goal_id = self.map.get_goal_id(landmark)
+
+    #     def heuristic(a, b):
+    #         return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    #     while open_set:
+    #         current = heapq.heappop(open_set)[1]
+
+    #         if current == goal:
+    #             return self.reconstruct_path(came_from, current)
+
+    #         neighbours = self.get_neighbours(current)
+
+    #         for neighbour in neighbours:
+    #             grid_value = self.map.grid[neighbour[1]][neighbour[0]]
+    #             if grid_value != 0 and grid_value != goal_id:
+    #                 continue
+
+    #             tentative_g_score = g_score[current] + 1
+
+    #             if route_type == "less_crowd":
+    #                 density_cost = density_grid.get(neighbour, 0)
+    #                 tentative_g_score += density_cost * 10
+
+    #             if neighbour not in g_score or tentative_g_score < g_score[neighbour]:
+    #                 came_from[neighbour] = current
+    #                 g_score[neighbour] = tentative_g_score
+    #                 f_score = tentative_g_score + heuristic(neighbour, goal)
+    #                 heapq.heappush(open_set, (f_score, neighbour))
+
+    #     return []
+
+    # def theta_star_path_finding(self, start, goal, landmark, density_grid, route_type):
+    #     print("Calling theta star path finding")
+    #     import heapq
+
+    #     open_set = []
+    #     heapq.heappush(open_set, (0, start))
+    #     came_from = {start: start}  # parent of start is itself
+    #     g_score = {start: 0}
+
+    #     def heuristic(a, b):
+    #         # Euclidean distance heuristic
+    #         return ((a[0]-b[0])**2 + (a[1]-b[1])**2) ** 0.5
+
+    #     def distance(a, b):
+    #         # Euclidean distance between two grid nodes
+    #         return ((a[0]-b[0])**2 + (a[1]-b[1])**2) ** 0.5
+
+    #     def line_of_sight(node1, node2):
+    #         # Bresenham's line algorithm
+    #         x0, y0 = node1
+    #         x1, y1 = node2
+    #         dx = abs(x1 - x0)
+    #         dy = abs(y1 - y0)
+    #         sx = 1 if x1 > x0 else -1
+    #         sy = 1 if y1 > y0 else -1
+    #         err = dx - dy
+    #         x, y = x0, y0
+
+    #         while (x, y) != (x1, y1):
+    #             if self.map.grid[y][x] != 0 and self.map.grid[y][x] != self.map.get_goal_id(landmark):
+    #                 return False
+    #             e2 = 2 * err
+    #             if e2 > -dy:
+    #                 err -= dy
+    #                 x += sx
+    #             if e2 < dx:
+    #                 err += dx
+    #                 y += sy
+    #         return True
+
+    #     while open_set:
+    #         current = heapq.heappop(open_set)[1]
+
+    #         if current == goal:
+    #             path = self.reconstruct_path(came_from, current)
+    #             print(path)
+    #             return path
+
+    #         for neighbour in self.get_neighbours(current):
+    #             grid_value = self.map.grid[neighbour[1]][neighbour[0]]
+    #             if grid_value != 0 and grid_value != self.map.get_goal_id(landmark):
+    #                 continue
+
+    #             parent = came_from.get(current, current)
+
+    #             if line_of_sight(parent, neighbour):
+    #                 tentative_g_score = g_score[parent] + distance(parent, neighbour)
+    #                 candidate_parent = parent
+    #             else:
+    #                 tentative_g_score = g_score[current] + distance(current, neighbour)
+    #                 candidate_parent = current
+
+    #             # Add crowd-density cost
+    #             if route_type == "less_crowd":
+    #                 density_cost = density_grid.get(neighbour, 0)
+    #                 tentative_g_score += density_cost * 10
+
+    #             if neighbour not in g_score or tentative_g_score < g_score[neighbour]:
+    #                 g_score[neighbour] = tentative_g_score
+    #                 came_from[neighbour] = candidate_parent
+    #                 f_score = tentative_g_score + heuristic(neighbour, goal)
+    #                 heapq.heappush(open_set, (f_score, neighbour))
+
+    #     return []
+
     def reconstruct_path(self, came_from, current):
         path = []
         points = []
@@ -187,10 +311,10 @@ class PathPlanner:
 
         # interpolate between waypoints
         for i in range(len(path) - 1):
-            x1 = (path[i][0] * self.map.tile_width) + self.map.tile_width//2
-            y1 = (path[i][1] * self.map.tile_height) + self.map.tile_height//2
-            x2 = (path[i+1][0] * self.map.tile_width) + self.map.tile_width//2
-            y2 = (path[i+1][1] * self.map.tile_height) + self.map.tile_height//2
+            x1 = (path[i][0] * self.map.tile_width) + self.map.tile_width // 2
+            y1 = (path[i][1] * self.map.tile_height) + self.map.tile_height // 2
+            x2 = (path[i + 1][0] * self.map.tile_width) + self.map.tile_width // 2
+            y2 = (path[i + 1][1] * self.map.tile_height) + self.map.tile_height // 2
 
             segment = self.interpolate_line((x1, y1), (x2, y2))
             if i > 0:
@@ -199,42 +323,6 @@ class PathPlanner:
 
         return points
 
-    def a_star_path_finding(self, start, goal, landmark, density_grid, route_type):
-        open_set = []
-        heapq.heappush(open_set, (0,start))
-        came_from = {} # to retrace path
-        g_score = {start: 0}
-        goal_id = self.map.get_goal_id(landmark)
-
-        def heuristic(a, b):
-            return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
-        while open_set:
-            current = heapq.heappop(open_set)[1]
-
-            if current == goal:
-                return self.reconstruct_path(came_from, current)
-
-            neighbours = self.get_neighbours(current)
-
-            for neighbour in neighbours:
-                grid_value = self.map.grid[neighbour[1]][neighbour[0]]
-                if grid_value != 0 and grid_value != goal_id:
-                    continue
-
-                tentative_g_score = g_score[current] + 1
-
-                if route_type == "less_crowd":
-                    density_cost = density_grid.get(neighbour, 0)
-                    tentative_g_score += density_cost * 10
-
-                if neighbour not in g_score or tentative_g_score < g_score[neighbour]:
-                    came_from[neighbour] = current
-                    g_score[neighbour] = tentative_g_score
-                    f_score = tentative_g_score + heuristic(neighbour, goal)
-                    heapq.heappush(open_set, (f_score, neighbour))
-
-        return []
 
     def theta_star_path_finding(self, start, goal, landmark, density_grid, route_type):
         print("Calling theta star path finding")
@@ -253,28 +341,53 @@ class PathPlanner:
             # Euclidean distance between two grid nodes
             return ((a[0]-b[0])**2 + (a[1]-b[1])**2) ** 0.5
 
-        def line_of_sight(node1, node2):
-            # Bresenham's line algorithm
-            x0, y0 = node1
-            x1, y1 = node2
+        def bresenham_line(x0, y0, x1, y1):
+            """Return all grid cells crossed by the line (x0,y0) -> (x1,y1)."""
+            cells = []
             dx = abs(x1 - x0)
             dy = abs(y1 - y0)
-            sx = 1 if x1 > x0 else -1
-            sy = 1 if y1 > y0 else -1
-            err = dx - dy
             x, y = x0, y0
+            sx = -1 if x0 > x1 else 1
+            sy = -1 if y0 > y1 else 1
+            if dx > dy:
+                err = dx / 2.0
+                while x != x1:
+                    cells.append((x, y))
+                    err -= dy
+                    if err < 0:
+                        y += sy
+                        err += dx
+                    x += sx
+            else:
+                err = dy / 2.0
+                while y != y1:
+                    cells.append((x, y))
+                    err -= dx
+                    if err < 0:
+                        x += sx
+                        err += dy
+                    y += sy
+            cells.append((x, y))
+            return cells
 
-            while (x, y) != (x1, y1):
+        def line_of_sight(node1, node2):
+            """Check if there is a clear line of sight (ignoring density)."""
+            for (x, y) in bresenham_line(node1[0], node1[1], node2[0], node2[1]):
                 if self.map.grid[y][x] != 0 and self.map.grid[y][x] != self.map.get_goal_id(landmark):
                     return False
-                e2 = 2 * err
-                if e2 > -dy:
-                    err -= dy
-                    x += sx
-                if e2 < dx:
-                    err += dx
-                    y += sy
             return True
+
+        def line_of_sight_cost(node1, node2):
+            """Compute cost along line-of-sight, including density if needed."""
+            base_dist = distance(node1, node2)
+            if route_type != "less_crowd":
+                return base_dist
+
+            density_penalty = 0
+            for (x, y) in bresenham_line(node1[0], node1[1], node2[0], node2[1]):
+                density_penalty += density_grid.get((x, y), 0) * 10
+
+            return base_dist + density_penalty
 
         while open_set:
             current = heapq.heappop(open_set)[1]
@@ -292,16 +405,11 @@ class PathPlanner:
                 parent = came_from.get(current, current)
 
                 if line_of_sight(parent, neighbour):
-                    tentative_g_score = g_score[parent] + distance(parent, neighbour)
+                    tentative_g_score = g_score[parent] + line_of_sight_cost(parent, neighbour)
                     candidate_parent = parent
                 else:
-                    tentative_g_score = g_score[current] + distance(current, neighbour)
+                    tentative_g_score = g_score[current] + line_of_sight_cost(current, neighbour)
                     candidate_parent = current
-
-                # Add crowd-density cost
-                if route_type == "less_crowd":
-                    density_cost = density_grid.get(neighbour, 0)
-                    tentative_g_score += density_cost * 10
 
                 if neighbour not in g_score or tentative_g_score < g_score[neighbour]:
                     g_score[neighbour] = tentative_g_score
