@@ -53,8 +53,8 @@ const Navigation = () => {
   };
 
   useEffect(() => {
-    const scaledX = (position.x / mapOriginalWidth) * imageWidth;
-    const scaledY = (position.y / mapOriginalHeight) * imageHeight;
+    const scaledX = Math.max(0, (position.x / mapOriginalWidth) * imageWidth);
+    const scaledY = Math.max(0, (position.y / mapOriginalHeight) * imageHeight);
 
     Animated.timing(new Animated.ValueXY({ x: scaledX, y: scaledY }), {
       toValue: { x: scaledX, y: scaledY },
@@ -82,11 +82,13 @@ const Navigation = () => {
 
   const checkDeviation = () => {
     if (pathPoints.length == 0){
+      console.log("Didn't deviate from path")
       setHasDeviated(false);
       return
     }
     const nearestDist = Math.min(...pathPoints.map(p => Math.sqrt(Math.pow(p[0] - position.x, 2) + Math.pow(p[1] - position.y, 2))));
     if (nearestDist > 20) {
+      console.log("Deviated from path")
       setHasDeviated(true);
     }
   };

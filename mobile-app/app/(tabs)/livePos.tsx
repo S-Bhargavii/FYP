@@ -34,8 +34,8 @@ export default function LiveLocationScreen() {
   const markerPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
 
   useEffect(() => {
-    const scaledX = (position.x / mapOriginalWidth) * imageWidth;
-    const scaledY = (position.y / mapOriginalHeight) * imageHeight;
+    const scaledX = Math.max(0, (position.x / mapOriginalWidth) * imageWidth);
+    const scaledY = Math.max(0, (position.y / mapOriginalHeight) * imageHeight);
     Animated.timing(markerPosition, {
       toValue: { x: scaledX, y: scaledY },
       duration: 500, 
