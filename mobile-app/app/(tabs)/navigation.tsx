@@ -141,7 +141,7 @@ const Navigation = () => {
               <Circle
                 cx={(position.x / mapOriginalWidth) * imageWidth}
                 cy={(position.y / mapOriginalHeight) * imageHeight}
-                r={5}
+                r={7}
                 fill="red"
               />
             )}
