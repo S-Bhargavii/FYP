@@ -146,6 +146,10 @@ def terminate(jetson_id:str):
     # delete mapping 
     del jetson_to_map[jetson_id]
 
+    # delete the corresponding redis key
+    redis_key = f"{REDIS_LOCATION_PREFIX}:{jetson_id}"
+    redis_client.delete(redis_key)
+
     # delete websocket connection
     sse_connection_manager.disconnect(jetson_id)
 
