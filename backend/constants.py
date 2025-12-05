@@ -9,3 +9,6 @@ REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 REDIS_DB = 0
 REDIS_LOCATION_PREFIX = "user_location"
+
+# jwt 
+SECRET_KEY = "5dPUszNm0IE3uuPmclhErK1uOZYJGqMaTrHlq60A9JG"

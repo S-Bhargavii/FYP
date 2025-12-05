@@ -2,7 +2,7 @@ import { View, Text, SafeAreaView, Dimensions, Animated, Easing, TouchableOpacit
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom } from 'jotai'
-import { jetsonIdAtom, mapDataAtom, mapIdAtom, poseAtom } from '../state/globalState'
+import { jetsonIdAtom, mapDataAtom, mapIdAtom, jwtTokenAtom, poseAtom } from '../state/globalState'
 import axios from 'axios'
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ const Navigation = () => {
   const [jetsonId] = useAtom(jetsonIdAtom);
   const [mapId,] = useAtom(mapIdAtom);
   const [mapData,] = useAtom(mapDataAtom);
+  const [jwtToken, setJwtToken] = useAtom(jwtTokenAtom);
 
   const destinations: { [key: string]: string } = mapData?.["landmarks_mapping"] ?? {};
   const destinationKeys = Object.keys(destinations);
@@ -69,9 +70,12 @@ const Navigation = () => {
       const encodedDestination = encodeURIComponent(selectedDestination);
       const encodedRouteType = encodeURIComponent(selectedRouteType);
       const encodedJetsonId = encodeURIComponent(jetsonId);
-      const uri = `http://10.0.2.2:8000/api/v1/route/${encodedRouteType}/${encodedDestination}/${encodedJetsonId}`;
-      console.log(uri);
-      const response = await axios.get(uri);
+      const uri = `http://10.0.2.2:8000/api/v1/route/${encodedRouteType}/${encodedDestination}`;
+      const response = await axios.get(uri, {
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
       const path = response.data.path;
       setPathPoints(path);
       togglePanel(false); // Collapse after navigation starts

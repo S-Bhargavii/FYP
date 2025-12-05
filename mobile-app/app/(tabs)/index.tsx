@@ -1,5 +1,5 @@
 import { useAtom } from 'jotai';
-import { jetsonIdAtom, mapDataAtom, mapIdAtom, poseAtom, sseConnectionAtom } from '../state/globalState';
+import { jetsonIdAtom, mapDataAtom, mapIdAtom, poseAtom, jwtTokenAtom, sseConnectionAtom } from '../state/globalState';
 import EventSource from 'react-native-sse';
 import { View, Text, Image, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -12,6 +12,7 @@ export default function RegistrationScreen() {
   const [mapId, setMapId] = useAtom(mapIdAtom);
   const [, setMapData] = useAtom(mapDataAtom);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [jwtToken, setJwtToken] = useAtom(jwtTokenAtom);
   const [loading, setLoading] = useState(false);
   const [, setPose] = useAtom(poseAtom);
   const [sseConnection, setSseConnection] = useAtom(sseConnectionAtom);
@@ -19,7 +20,12 @@ export default function RegistrationScreen() {
   useEffect(() => {
       const fetchMapData = async () => {
         if (mapId != "") {
-          const response = await axios.get(`http://10.0.2.2:8000/api/v1/map-info/${jetsonId}`);
+          const uri =`http://10.0.2.2:8000/api/v1/map-info`;
+          const response = await axios.get(uri, {
+            headers: {
+              'Authorization': `Bearer ${jwtToken}`
+            }
+          });
           const mapData = response.data.map_info;
           setMapData(mapData);
         }
@@ -33,7 +39,11 @@ export default function RegistrationScreen() {
         jetson_id: jetsonId,
         map_id: mapId
       })
-      .then(()=> setIsRegistered(true))
+      .then((response)=> {
+        const token = response.data.access_token;
+        setJwtToken(token);
+        setIsRegistered(true);
+      })
       .catch(err => console.error(err))
       .finally(()=> setLoading(false));
       
@@ -69,13 +79,14 @@ export default function RegistrationScreen() {
   const handleTerminate = () => {
     setLoading(true);
     axios.get("http://10.0.2.2:8000/api/v1/terminate", {
-      params: {
-        jetson_id: jetsonId
+      headers: {
+        'Authorization': `Bearer ${jwtToken}`
       }
     })
     .then(() => {
       setJetsonId('');
       setMapId('');
+      setJwtToken('');
       setIsRegistered(false);
     })
     .catch(err => console.error(err))

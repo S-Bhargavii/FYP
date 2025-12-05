@@ -2,7 +2,7 @@ import React, { JSX, useEffect, useState } from 'react';
 import { View, Text, Image, Dimensions, TouchableOpacity, SafeAreaView } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import Header from '@/components/Header';
-import { jetsonIdAtom, mapDataAtom, mapIdAtom } from '../state/globalState';
+import { jetsonIdAtom, mapDataAtom, mapIdAtom, jwtTokenAtom } from '../state/globalState';
 import { useAtom } from 'jotai';
 import axios from 'axios';
 
@@ -15,6 +15,7 @@ const mapImages: Record<'map_01' | 'map_02' | 'map_03', any> = {
 export default function CrowdHeatmapScreen() {
   const [densityGrid, setDensityGrid] = useState({});
   const [jetsonId, setJetsonId] = useAtom(jetsonIdAtom);
+  const [jwtToken] = useAtom(jwtTokenAtom);
   const [mapId,] = useAtom(mapIdAtom);
   const [mapData,] = useAtom(mapDataAtom);
 
@@ -36,8 +37,12 @@ export default function CrowdHeatmapScreen() {
 
   const fetchDensityData = async () => {
     try {
-      const uri = `http://10.0.2.2:8000/api/v1/crowd-heatmap/${jetsonId}`
-      const response = await axios.get(uri);
+      const uri = `http://10.0.2.2:8000/api/v1/crowd-heatmap`;
+      const response = await axios.get(uri, {
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
       const density_grid = response.data.density_grid;
       setDensityGrid(density_grid);
     } catch (error) {

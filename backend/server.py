@@ -1,15 +1,17 @@
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 import redis
 import paho.mqtt.client as mqtt
 import json 
 import asyncio
 import time
+from datetime import timedelta
 from constants import MQTT_BROKER, MQTT_PORT, REDIS_HOST, REDIS_LOCATION_PREFIX, REDIS_DB, REDIS_PORT, MQTT_COMMANDS_TOPIC_PREFIX, MQTT_POSE_TOPIC_PREFIX
 from connection_manager import SSEConnectionManager
 from input_validation import SessionRegistration
 from path_planning import PathPlanner
 from map import Map
+from auth import create_access_token, get_current_session, ACCESS_TOKEN_EXPIRE_MINUTES
 
 # Store main event loop globally
 main_event_loop = asyncio.get_event_loop()
@@ -32,6 +34,7 @@ sse_connection_manager = SSEConnectionManager()
 # the map the jetson is currently being used in
 # jetson_id : map_id
 jetson_to_map = {}
+registered_jetsons_list = set()
 
 # each map will have its corresponding path planner object 
 # has the map info and computes the optimal path, gets crowd info so on
@@ -85,11 +88,12 @@ mqtt_client.subscribe(f"{MQTT_POSE_TOPIC_PREFIX}/"+"#")
 
 @app.post("/api/v1/register")
 def register(session: SessionRegistration):
+    """Register a jetson device and return JWT token"""
     print(f"Registration required for : {session.jetson_id} and {session.map_id}")
     if not session.jetson_id or not session.map_id:
         raise HTTPException(status_code=400, detail="jetson_id and map_id are required.")
     
-    if session.jetson_id in jetson_to_map:
+    if session.jetson_id in registered_jetsons_list:
         raise HTTPException(status_code=400, detail="jetson_id already registered.")
 
     # publish to commands/1 topic for example 
@@ -100,7 +104,8 @@ def register(session: SessionRegistration):
         "map_id" : session.map_id
     }
     jetson_to_map[session.jetson_id] = session.map_id
-    
+    registered_jetsons_list.add(session.jetson_id)
+
     # at the time of registration user is at the origin
     redis_key = f"{REDIS_LOCATION_PREFIX}:{session.jetson_id}"
     redis_value = {
@@ -117,11 +122,32 @@ def register(session: SessionRegistration):
     # publish on corresponding jetson's topic 
     mqtt_client.publish(topic=topic, payload=json.dumps(payload))
 
-    return JSONResponse(content={"message": "Registration successful."}, status_code=200)
+    # Generate JWT token with both jetson_id and map_id
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": session.jetson_id, "map_id": session.map_id}, 
+        expires_delta=access_token_expires
+    )
 
-@app.get("/api/v1/map-info/{jetson_id}")
-def get_map_info(jetson_id: str):
-    map: Map =  map_to_map_and_path_planner[jetson_to_map[jetson_id]][0]
+    return JSONResponse(
+        content={
+            "message": "Registration successful.",
+            "access_token": access_token,
+            "token_type": "bearer"
+        }, 
+        status_code=200
+    )
+
+@app.get("/api/v1/map-info")
+def get_map_info(session: dict = Depends(get_current_session)):
+    """Get map information for authenticated jetson"""
+    jetson_id = session["jetson_id"]
+    map_id = session["map_id"]
+    
+    if jetson_id not in registered_jetsons_list:
+        raise HTTPException(status_code=404, detail="Jetson not registered")
+    
+    map: Map = map_to_map_and_path_planner[map_id][0]
     map_info = {
         "map_width_in_px": map.map_width_in_px,
         "map_height_in_px": map.map_height_in_px,
@@ -129,22 +155,27 @@ def get_map_info(jetson_id: str):
         "tile_width": map.tile_width,
         "landmarks_mapping": map.landmarks_mapping
     }
-    return {"map_info":map_info}
+    return {"map_info": map_info}
 
 @app.get("/api/v1/terminate")
-def terminate(jetson_id:str):
-    print(f"Termination requested for {jetson_id}")
-    if jetson_id not in jetson_to_map:
-        raise HTTPException(status_code=400, detail="jetson has not been registered.")
+def terminate(session: dict = Depends(get_current_session)):
+    """Terminate session for authenticated jetson"""
+    jetson_id = session["jetson_id"]
+    map_id = session["map_id"]
     
+    print(f"Termination requested for {jetson_id}")
+    if jetson_id not in registered_jetsons_list:
+        raise HTTPException(status_code=400, detail="jetson has not been registered.")
+        
     topic = f"{MQTT_COMMANDS_TOPIC_PREFIX}/{jetson_id}"
-    payload = {"action" : "shutdown"}
+    payload = {"action": "shutdown"}
 
     # publish on corresponding jetson's topic 
     mqtt_client.publish(topic=topic, payload=json.dumps(payload))
     
     # delete mapping 
     del jetson_to_map[jetson_id]
+    registered_jetsons_list.remove(jetson_id)
 
     # delete the corresponding redis key
     redis_key = f"{REDIS_LOCATION_PREFIX}:{jetson_id}"
@@ -161,16 +192,33 @@ async def sse_endpoint(jetson_id: str):
     response = StreamingResponse(sse_event_generator(queue), media_type="text/event-stream")
     return response
 
-
-@app.get("/api/v1/route/{route_type}/{destination}/{jetson_id}")
-def get_fast_route(route_type:str, destination: str, jetson_id: str):
-    path_planner :PathPlanner = map_to_map_and_path_planner[jetson_to_map[jetson_id]][1]
+@app.get("/api/v1/route/{route_type}/{destination}")
+def get_fast_route(
+    route_type: str, 
+    destination: str, 
+    session: dict = Depends(get_current_session)
+):
+    """Get route for authenticated jetson"""
+    jetson_id = session["jetson_id"]
+    map_id = session["map_id"]
+    
+    if jetson_id not in registered_jetsons_list:
+        raise HTTPException(status_code=404, detail="Jetson not registered")
+    
+    path_planner: PathPlanner = map_to_map_and_path_planner[map_id][1]
     start = path_planner.fetch_jetson_current_location(jetson_id)
     path = path_planner.find_nearest_path(start, destination, route_type)
-    return {"path":path}
+    return {"path": path}
 
-@app.get("/api/v1/crowd-heatmap/{jetson_id}")
-def get_crowd_density(jetson_id:str):
-    path_planner : PathPlanner = map_to_map_and_path_planner[jetson_to_map[jetson_id]][1]
+@app.get("/api/v1/crowd-heatmap")
+def get_crowd_density(session: dict = Depends(get_current_session)):
+    """Get crowd density heatmap for authenticated jetson"""
+    jetson_id = session["jetson_id"]
+    map_id = session["map_id"]
+
+    if jetson_id not in registered_jetsons_list:
+        raise HTTPException(status_code=404, detail="Jetson not registered")
+    
+    path_planner: PathPlanner = map_to_map_and_path_planner[map_id][1]
     density_grid = path_planner.compute_crowd_density(for_heatmap=True)
-    return {"density_grid":density_grid}
+    return {"density_grid": density_grid}
