@@ -101,6 +101,15 @@ def register(session: SessionRegistration):
     }
     jetson_to_map[session.jetson_id] = session.map_id
     
+    # at the time of registration user is at the origin
+    redis_key = f"{REDIS_LOCATION_PREFIX}:{session.jetson_id}"
+    redis_value = {
+        "x": 0, 
+        "y": 0, 
+        "timestamp": time.time()
+    }
+    redis_client.set(redis_key, json.dumps(redis_value))
+    
     if session.map_id not in map_to_map_and_path_planner:
         map = Map(session.map_id)
         map_to_map_and_path_planner[session.map_id] = [map, PathPlanner(map, redis_client, jetson_to_map)]
