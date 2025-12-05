@@ -19,7 +19,7 @@ export default function RegistrationScreen() {
   useEffect(() => {
       const fetchMapData = async () => {
         if (mapId != "") {
-          const response = await axios.get(`http://10.0.2.2:8000/map-data/${jetsonId}`);
+          const response = await axios.get(`http://10.0.2.2:8000/api/v1/map-info/${jetsonId}`);
           const mapData = response.data.map_info;
           setMapData(mapData);
         }
@@ -29,7 +29,7 @@ export default function RegistrationScreen() {
   
   const handleRegister = () => {
     setLoading(true);
-    axios.post("http://10.0.2.2:8000/register", {
+    axios.post("http://10.0.2.2:8000/api/v1/register", {
         jetson_id: jetsonId,
         map_id: mapId
       })
@@ -40,7 +40,7 @@ export default function RegistrationScreen() {
       // open websocket connection
       try{
         // create a websocket object
-        const sse = new EventSource(`http://10.0.2.2:8000/sse/${jetsonId}`);
+        const sse = new EventSource(`http://10.0.2.2:8000/api/v1/sse/${jetsonId}`);
         
         sse.addEventListener("message", (event)=>{
           if (event.data) {
@@ -68,7 +68,7 @@ export default function RegistrationScreen() {
 
   const handleTerminate = () => {
     setLoading(true);
-    axios.get("http://10.0.2.2:8000/terminate", {
+    axios.get("http://10.0.2.2:8000/api/v1/terminate", {
       params: {
         jetson_id: jetsonId
       }

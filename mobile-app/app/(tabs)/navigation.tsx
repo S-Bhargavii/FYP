@@ -69,7 +69,7 @@ const Navigation = () => {
       const encodedDestination = encodeURIComponent(selectedDestination);
       const encodedRouteType = encodeURIComponent(selectedRouteType);
       const encodedJetsonId = encodeURIComponent(jetsonId);
-      const uri = `http://10.0.2.2:8000/route/${encodedRouteType}/${encodedDestination}/${encodedJetsonId}`;
+      const uri = `http://10.0.2.2:8000/api/v1/route/${encodedRouteType}/${encodedDestination}/${encodedJetsonId}`;
       console.log(uri);
       const response = await axios.get(uri);
       const path = response.data.path;
@@ -81,6 +81,10 @@ const Navigation = () => {
   };
 
   const checkDeviation = () => {
+    if (pathPoints.length == 0){
+      setHasDeviated(false);
+      return
+    }
     const nearestDist = Math.min(...pathPoints.map(p => Math.sqrt(Math.pow(p[0] - position.x, 2) + Math.pow(p[1] - position.y, 2))));
     if (nearestDist > 20) {
       setHasDeviated(true);
@@ -178,7 +182,7 @@ const Navigation = () => {
             <Text className="text-base font-bold mt-4 mb-2">Route Type:</Text>
             <Picker selectedValue={selectedRouteType} onValueChange={setSelectedRouteType}>
               <Picker.Item label="Fastest Route" value="fast" />
-              <Picker.Item label="Less Crowded" value="less-crowd" />
+              <Picker.Item label="Less Crowded" value="less_crowd" />
             </Picker>
 
             <TouchableOpacity className="mt-4 bg-green-600 py-3 rounded-lg" onPress={fetchPath}>

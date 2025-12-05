@@ -36,7 +36,7 @@ export default function CrowdHeatmapScreen() {
 
   const fetchDensityData = async () => {
     try {
-      const uri = `http://10.0.2.2:8000/crowd-heatmap/${jetsonId}`
+      const uri = `http://10.0.2.2:8000/api/v1/crowd-heatmap/${jetsonId}`
       const response = await axios.get(uri);
       const density_grid = response.data.density_grid;
       setDensityGrid(density_grid);

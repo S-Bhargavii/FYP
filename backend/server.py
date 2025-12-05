@@ -70,7 +70,7 @@ def on_pose_msg(client, userdata, msg):
         # meaning you don't want to stop listening to incoming messages while this 
         # part of the code is running.
         asyncio.run_coroutine_threadsafe(
-            sse_connection_manager.send_to_jetson_user(jetson_id, payload_str),
+            sse_connection_manager.send_to_jetson_user(jetson_id, json.dumps(payload)),
             main_event_loop
         )
 
@@ -83,7 +83,7 @@ mqtt_client.subscribe(f"{MQTT_POSE_TOPIC_PREFIX}/"+"#")
 
 ############ API ENDPOINTS #################
 
-@app.post("/register")
+@app.post("/api/v1/register")
 def register(session: SessionRegistration):
     print(f"Registration required for : {session.jetson_id} and {session.map_id}")
     if not session.jetson_id or not session.map_id:
@@ -110,7 +110,7 @@ def register(session: SessionRegistration):
 
     return JSONResponse(content={"message": "Registration successful."}, status_code=200)
 
-@app.get("/map-data/{jetson_id}")
+@app.get("/api/v1/map-info/{jetson_id}")
 def get_map_info(jetson_id: str):
     map: Map =  map_to_map_and_path_planner[jetson_to_map[jetson_id]][0]
     map_info = {
@@ -122,7 +122,7 @@ def get_map_info(jetson_id: str):
     }
     return {"map_info":map_info}
 
-@app.get("/terminate")
+@app.get("/api/v1/terminate")
 def terminate(jetson_id:str):
     print(f"Termination requested for {jetson_id}")
     if jetson_id not in jetson_to_map:
@@ -142,21 +142,21 @@ def terminate(jetson_id:str):
 
     return JSONResponse(content={"message": "Termination successful."}, status_code=200)
 
-@app.get("/sse/{jetson_id}")
+@app.get("/api/v1/sse/{jetson_id}")
 async def sse_endpoint(jetson_id: str):
     queue = sse_connection_manager.connect(jetson_id)
     response = StreamingResponse(sse_event_generator(queue), media_type="text/event-stream")
     return response
 
 
-@app.get("/route/{route_type}/{destination}/{jetson_id}")
+@app.get("/api/v1/route/{route_type}/{destination}/{jetson_id}")
 def get_fast_route(route_type:str, destination: str, jetson_id: str):
     path_planner :PathPlanner = map_to_map_and_path_planner[jetson_to_map[jetson_id]][1]
     start = path_planner.fetch_jetson_current_location(jetson_id)
     path = path_planner.find_nearest_path(start, destination, route_type)
     return {"path":path}
 
-@app.get("/crowd-heatmap/{jetson_id}")
+@app.get("/api/v1/crowd-heatmap/{jetson_id}")
 def get_crowd_density(jetson_id:str):
     path_planner : PathPlanner = map_to_map_and_path_planner[jetson_to_map[jetson_id]][1]
     density_grid = path_planner.compute_crowd_density(for_heatmap=True)
