@@ -4,11 +4,13 @@ import threading
 import signal
 import sys
 import json
+import os
 
-MQTT_BROKER = "broker.hivemq.com"
+# MQTT_BROKER = "broker.hivemq.com"
+MQTT_BROKER = "192.168.1.11"
 MQTT_PORT = 1883
-TOPIC_COMMANDS = "/commands"
-TOPIC_POSE = "/pose"
+TOPIC_COMMANDS = "/commands/jetson_01"
+TOPIC_POSE = "/pose/jetson_01"
 
 slam_process = None
 reader_thread = None
@@ -24,16 +26,26 @@ def read_slam_output(process):
 
             # If the line contains the current pose, publish it
             if line.startswith("Current pose"):
+                # apply co-ordinate transformation here
                 parts = line.split(",")
                 x = float(parts[0].split(":")[-1].strip())
                 y = float(parts[1].split(":")[-1].strip())
+
+                # applying transform
+                x = int(x / 0.08)
+                y = int(-y / 0.08)
                 
+                # timestamp = float(parts[3].split(":")[-1].strip())
+                
+                # pose_msg = {"x": x, "y": y, "timestamp":timestamp}
                 pose_msg = {"x": x, "y": y}
                 mqtt_client.publish(TOPIC_POSE, json.dumps(pose_msg))
                 print(f"[POSE PUBLISHED] {pose_msg}")
+                # print(timestamp)
 
         except Exception as e:
             print(f"Error parsing line: {e}")
+
 
 def on_message(client, userdata, msg):
     global slam_process, reader_thread
@@ -48,7 +60,8 @@ def on_message(client, userdata, msg):
                 slam_process = subprocess.Popen(
                     ["./Examples/RGB-D/rgbd_realsense_D435i",
                      "/home/bhargavi/ORB_SLAM3/Vocabulary/ORBvoc.txt",
-                     "/home/bhargavi/ORB_SLAM3/Examples/RGB-D/RealSense_D435i.yaml"],
+                     "/home/bhargavi/ORB_SLAM3/Examples/RGB-D/RealSense_D435i.yaml",
+                     "loc"],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT
                 )
@@ -61,7 +74,9 @@ def on_message(client, userdata, msg):
         elif action == "shutdown":
             if slam_process is not None:
                 print("Shutting down ORB-SLAM3...")
-                slam_process.terminate()
+                # Send SIGINT to mimic Ctrl+C
+                slam_process.send_signal(signal.SIGINT)
+                slam_process.wait()  # wait for clean exit
                 slam_process = None
             else:
                 print("No SLAM process to shut down.")
@@ -73,7 +88,10 @@ def cleanup(sig=None, frame=None):
     global slam_process
     print("Cleaning up...")
     if slam_process is not None:
-        slam_process.terminate()
+        print("Sending SIGINT to SLAM process...")
+        slam_process.send_signal(signal.SIGINT)
+        slam_process.wait()
+        slam_process = None
     mqtt_client.disconnect()
     sys.exit(0)
 
