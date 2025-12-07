@@ -1,4 +1,4 @@
-# SLAM-based Visual Localisation System
+# ORB-SLAM3 based Visual Localisation System
 
 This repository contains the **backend and frontend components** of a SLAM-based visual localisation system.
 The system integrates a Jetson-based ORB-SLAM3 localisation engine with a backend server and a mobile client for real-time pose tracking, visualisation and navigation guidance.
