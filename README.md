@@ -6,6 +6,8 @@ The system integrates a Jetson-based ORB-SLAM3 localisation engine with a backen
 For the ORB-SLAM3 implementation and the MQTT jetson client used in this system, please refer to:
 [https://github.com/S-Bhargavii/ORB_SLAM3](https://github.com/S-Bhargavii/ORB_SLAM3)
 
+For the final year project report, please refer to [https://hdl.handle.net/10356/204585](https://hdl.handle.net/10356/204585)
+
 ---
 
 ## System Architecture Overview
