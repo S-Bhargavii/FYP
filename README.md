@@ -4,7 +4,7 @@ This repository contains the **backend and frontend components** of a SLAM-based
 The system integrates a Jetson-based ORB-SLAM3 localisation engine with a backend server and a mobile client for real-time pose tracking, visualisation and navigation guidance.
 
 For the ORB-SLAM3 implementation and the MQTT jetson client used in this system, please refer to:
-[https://github.com/S-Bhargavii/ORB_SLAM3/tree/master](https://github.com/S-Bhargavii/ORB_SLAM3/tree/master)
+[https://github.com/S-Bhargavii/ORB_SLAM3/tree/master](https://github.com/S-Bhargavii/ORB_SLAM3)
 
 ---
 
