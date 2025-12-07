@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import { jetsonIdAtom, mapDataAtom, mapIdAtom, jwtTokenAtom } from '../state/globalState';
 import { useAtom } from 'jotai';
 import axios from 'axios';
+import { API_BASE_URL } from '@/constants/const';
 
 const mapImages: Record<'map_01' | 'map_02' | 'map_03', any> = {
   "map_01": require('@/assets/images/map_01.png'),
@@ -37,7 +38,7 @@ export default function CrowdHeatmapScreen() {
 
   const fetchDensityData = async () => {
     try {
-      const uri = `http://10.0.2.2:8000/api/v1/crowd-heatmap`;
+      const uri = `${API_BASE_URL}/api/v1/crowd-heatmap`;
       const response = await axios.get(uri, {
         headers: {
           'Authorization': `Bearer ${jwtToken}`

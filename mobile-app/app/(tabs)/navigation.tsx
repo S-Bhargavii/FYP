@@ -6,6 +6,7 @@ import { jetsonIdAtom, mapDataAtom, mapIdAtom, jwtTokenAtom, poseAtom } from '..
 import axios from 'axios'
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
+import { API_BASE_URL } from '@/constants/const';
 
 const mapImages: Record<'map_01' | 'map_02' | 'map_03', any> = {
   "map_01": require('@/assets/images/map_01.png'),
@@ -70,7 +71,7 @@ const Navigation = () => {
       const encodedDestination = encodeURIComponent(selectedDestination);
       const encodedRouteType = encodeURIComponent(selectedRouteType);
       const encodedJetsonId = encodeURIComponent(jetsonId);
-      const uri = `http://10.0.2.2:8000/api/v1/route/${encodedRouteType}/${encodedDestination}`;
+      const uri = `${API_BASE_URL}/api/v1/route/${encodedRouteType}/${encodedDestination}`;
       const response = await axios.get(uri, {
         headers: {
           'Authorization': `Bearer ${jwtToken}`

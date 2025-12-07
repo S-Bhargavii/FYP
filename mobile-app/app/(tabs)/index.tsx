@@ -6,6 +6,7 @@ import { Picker } from '@react-native-picker/picker';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useEffect, useState } from 'react';
 import axios from "axios";
+import { API_BASE_URL } from '@/constants/const';
 
 export default function RegistrationScreen() {
   const [jetsonId, setJetsonId] = useAtom(jetsonIdAtom);
@@ -20,7 +21,7 @@ export default function RegistrationScreen() {
   useEffect(() => {
       const fetchMapData = async () => {
         if (mapId != "") {
-          const uri =`http://10.0.2.2:8000/api/v1/map-info`;
+          const uri =`${API_BASE_URL}/api/v1/map-info`;
           const response = await axios.get(uri, {
             headers: {
               'Authorization': `Bearer ${jwtToken}`
@@ -35,7 +36,7 @@ export default function RegistrationScreen() {
   
   const handleRegister = () => {
     setLoading(true);
-    axios.post("http://10.0.2.2:8000/api/v1/register", {
+    axios.post(`${API_BASE_URL}/api/v1/register`, {
         jetson_id: jetsonId,
         map_id: mapId
       })
@@ -50,7 +51,7 @@ export default function RegistrationScreen() {
       // open websocket connection
       try{
         // create a websocket object
-        const sse = new EventSource(`http://10.0.2.2:8000/api/v1/sse/${jetsonId}`);
+        const sse = new EventSource(`${API_BASE_URL}/api/v1/sse/${jetsonId}`);
         
         sse.addEventListener("message", (event)=>{
           if (event.data) {
@@ -78,7 +79,7 @@ export default function RegistrationScreen() {
 
   const handleTerminate = () => {
     setLoading(true);
-    axios.get("http://10.0.2.2:8000/api/v1/terminate", {
+    axios.get(`${API_BASE_URL}/api/v1/terminate`, {
       headers: {
         'Authorization': `Bearer ${jwtToken}`
       }
