@@ -115,6 +115,8 @@ Install dependencies:
 npm install
 ```
 
+Replace the `API_BASE_URL` in the [https://github.com/S-Bhargavii/FYP/blob/main/mobile-app/constants/const.ts](https://github.com/S-Bhargavii/FYP/blob/main/mobile-app/constants/const.ts) file with the backend server's IP address and port.
+
 Start the Expo development server:
 
 ```bash
